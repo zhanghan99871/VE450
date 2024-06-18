@@ -18,7 +18,7 @@ def read_xmp_export(file_path):
     return df
 
 # Replace with actual file path
-file_path = '/home/yaqing/ve450/VW216.RTSL-BUL.HV_001.txt'
+file_path = '/filepath/'
 df = read_xmp_export(file_path)
 print(df.head())
 
