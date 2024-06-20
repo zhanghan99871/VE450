@@ -18,12 +18,12 @@ def read_xmp_export(file_path):
     return df
 
 # Replace with actual file path
-file_path = '/filepath/'
+file_path = '/home/yaqing/ve450/VW216.RTSL-BUL.HV_001.txt'
 df = read_xmp_export(file_path)
 print(df.head())
 
-# Save to Excel
-excel_path = 'output_file.xlsx'
-df.to_excel(excel_path, index=False)
+# Save to CSV
+csv_path = 'output_file.csv'
+df.to_csv(csv_path, index=False)
 
-print(f"Data has been successfully written to {excel_path}")
+print(f"Data has been successfully written to {csv_path}")
