@@ -1,3 +1,5 @@
+# This module is for loading all the useful data from Speos to python
+
 import pandas as pd
 
 def read_xmp_export(file_path):

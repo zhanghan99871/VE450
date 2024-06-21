@@ -1,3 +1,5 @@
+# This module is for implementing the human eye adaptation algorithms
+
 import pandas as pd
 import numpy as np
 
