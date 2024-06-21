@@ -1,7 +1,5 @@
 import numpy as np
 from PIL import Image
-import pandas as pd
-import imageio.v2 as imageio
 def read_png_export(file_path):
     img = Image.open(file_path)
     img_arr = np.array(img)
