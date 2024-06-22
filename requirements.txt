@@ -1,4 +1,0 @@
-numpy~=1.21.5
-pillow~=9.2.0
-pandas~=1.4.4
-opencv-python~=4.10.0.84
