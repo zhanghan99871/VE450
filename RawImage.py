@@ -52,11 +52,11 @@ class RawImage:
             print("Luminance data is not loaded.")
 
 # Example usage
-txt_file_path = '/path_to_txt_file.txt'
-image = RawImage(txt_file_path)
-image.loadRGB('/path_to_rgb_image.png')
-image.loadLuminance(txt_file_path)
+# txt_file_path = '/path_to_txt_file.txt'
+# image = RawImage(txt_file_path)
+# image.loadRGB('/path_to_rgb_image.png')
+# image.loadLuminance(txt_file_path)
 
-# For check the reading 
-output_file_name = 'luminance_image.png'
-image.saveLuminance(output_file_name)
+# # For check the reading 
+# output_file_name = 'luminance_image.png'
+# image.saveLuminance(output_file_name)
