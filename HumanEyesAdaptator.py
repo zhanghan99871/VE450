@@ -59,9 +59,9 @@ class HumanEyesAdaptator:
         return self.luminance_generator.generate_sample_luminance_values()
 
 # TODO: replace with actual file paths
-initial_txt_file = '/home/yaqing/ve450/Human_eye-Adaptation-Rendering-Algorithm/data/VW216.RTSL-BUL.HV_001.txt'
+initial_txt_file = '/path/to/initial.txt'
 adjusted_txt_files = [
-    '/home/yaqing/ve450/Human_eye-Adaptation-Rendering-Algorithm/data/VW216.RTSL-BUL.HV_001.txt'
+    '/path/to/adjust1.txt','/path/to/adjust2.txt', #...
 ]
 initial_luminance = 6809.47  # TODO: Initial luminance in cd/m²
 
