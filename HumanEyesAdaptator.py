@@ -100,24 +100,22 @@ class HumanEyesAdaptator:
                 image = RawImage()
                 image.loadRGB(y_file)
                 
-                adjusted_img = np.zeros_like(original_img)
-                adjusted_luminance = self.apply_brightness_adjustment(self.X, self.X_Ave_values[i], k, b)
+                # Convert original image to LAB color space
+                lab_original = cv.cvtColor(original_img, cv.COLOR_BGR2LAB)
+                l, a, b_ch = cv.split(lab_original)
+                
+                # Apply brightness adjustment to the L channel
+                adjusted_luminance = self.apply_brightness_adjustment(l, self.X_Ave_values[i], k, b)
                 
                 # Normalize adjusted luminance to 0-255 range
                 adjusted_luminance = ((adjusted_luminance - adjusted_luminance.min()) / 
                                       (adjusted_luminance.max() - adjusted_luminance.min()) * 255).astype(np.uint8)
                 
-                # Calculate the ratio of adjusted luminance to the original luminance
-                original_luminance = cv.cvtColor(original_img, cv.COLOR_BGR2LAB)[:, :, 0]
-                ratio = adjusted_luminance / (original_luminance + 1e-10)
+                # Merge the adjusted L channel back with the original a and b channels
+                lab_adjusted = cv.merge([adjusted_luminance, a, b_ch])
                 
-                # Apply the ratio to each channel
-                for channel in range(3):
-                    adjusted_img[:, :, channel] = (original_img[:, :, channel].astype(float) * ratio).clip(0, 255).astype(np.uint8)
-                
-                # Ensure both images have the same size
-                if original_img.shape != adjusted_img.shape:
-                    adjusted_img = cv.resize(adjusted_img, (original_img.shape[1], original_img.shape[0]))
+                # Convert back to BGR color space
+                adjusted_img = cv.cvtColor(lab_adjusted, cv.COLOR_LAB2BGR)
                 
                 # Combine images side by side
                 comparison_img = np.hstack((original_img, adjusted_img))
@@ -135,8 +133,6 @@ class HumanEyesAdaptator:
                 print(f"Comparison image saved to {output_path}")
             except Exception as e:
                 print(f"Error processing file {y_file}: {e}")
-
-# Example usage:
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
