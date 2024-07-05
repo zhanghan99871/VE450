@@ -34,54 +34,55 @@ class HumanEyesAdaptator:
     def sigmoid(self, X, k, X_Ave):
         return 1 / (1 + np.exp(-k * (X - X_Ave)))
 
-    def fit_gamma(self):
-        k_values = []
-        b_values = []
-        r2_scores = []
+    def fit(self):
+        if self.fit_func == "gamma":  # Fit gamma
+            k_values = []
+            b_values = []
+            r2_scores = []
 
-        for i, y_file in enumerate(self.Y_files):
-            Y = self.extract_luminance_from_png(y_file)
-            X_Ave = self.X_Ave_values[i]
+            for i, y_file in enumerate(self.Y_files):
+                Y = self.extract_luminance_from_png(y_file)
+                X_Ave = self.X_Ave_values[i]
+                
+                params, _ = curve_fit(lambda X, k, b: self.gamma_function(X, k, b, X_Ave), self.X.ravel(), Y.ravel())
+                k_values.append(params[0])
+                b_values.append(params[1])
+                
+                # Calculate R²
+                Y_pred = self.gamma_function(self.X, params[0], params[1], X_Ave)
+                r2 = r2_score(Y.ravel(), Y_pred.ravel())
+                r2_scores.append(r2)
             
-            params, _ = curve_fit(lambda X, k, b: self.gamma_function(X, k, b, X_Ave), self.X.ravel(), Y.ravel())
-            k_values.append(params[0])
-            b_values.append(params[1])
-            
-            # Calculate R²
-            Y_pred = self.gamma_function(self.X, params[0], params[1], X_Ave)
-            r2 = r2_score(Y.ravel(), Y_pred.ravel())
-            r2_scores.append(r2)
+            k_avg = np.mean(k_values)
+            b_avg = np.mean(b_values)
+            r2_avg = np.mean(r2_scores)
+
+            print(f"Fitted parameters: k = {k_avg}, b = {b_avg}")
+            print(f"Average R²: {r2_avg}")
+            return k_avg, b_avg, r2_avg
         
-        k_avg = np.mean(k_values)
-        b_avg = np.mean(b_values)
-        r2_avg = np.mean(r2_scores)
+        else:  # Fit sigmoid
+            k_values = []
+            r2_scores = []
 
-        print(f"Fitted parameters: k = {k_avg}, b = {b_avg}")
-        print(f"Average R²: {r2_avg}")
-        return k_avg, b_avg, r2_avg
-
-    def fit_sigmoid(self):
-        k_values = []
-        r2_scores = []
-
-        for i, y_file in enumerate(self.Y_files):
-            Y = self.extract_luminance_from_png(y_file)
-            X_Ave = self.X_Ave_values[i]
+            for i, y_file in enumerate(self.Y_files):
+                Y = self.extract_luminance_from_png(y_file)
+                X_Ave = self.X_Ave_values[i]
+                
+                params, _ = curve_fit(lambda X, k: self.sigmoid(X, k, X_Ave), self.X.ravel(), Y.ravel())
+                k_values.append(params[0])
+                
+                # Calculate R²
+                Y_pred = self.sigmoid(self.X, params[0], X_Ave)
+                r2 = r2_score(Y.ravel(), Y_pred.ravel())
+                r2_scores.append(r2)
             
-            params, _ = curve_fit(lambda X, k: self.sigmoid(X, k, X_Ave), self.X.ravel(), Y.ravel())
-            k_values.append(params[0])
-            
-            # Calculate R²
-            Y_pred = self.sigmoid(self.X, params[0], X_Ave)
-            r2 = r2_score(Y.ravel(), Y_pred.ravel())
-            r2_scores.append(r2)
-        
-        k_avg = np.mean(k_values)
-        r2_avg = np.mean(r2_scores)
+            k_avg = np.mean(k_values)
+            r2_avg = np.mean(r2_scores)
 
-        print(f"Fitted parameters: k = {k_avg}")
-        print(f"Average R²: {r2_avg}")
-        return k_avg, r2_avg
+            print(f"Fitted parameters: k = {k_avg}")
+            print(f"Average R²: {r2_avg}")
+            return k_avg, r2_avg
 
     def generate_sample_luminance_values(self):
         return self.luminance_generator.generate_sample_luminance_values()
@@ -97,4 +98,4 @@ initial_luminance = 6809.47  # Initial luminance in cd/m²
 adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
 
 # Fit gamma
-k, b, r2_avg = adaptator.fit_gamma()
+k, b, r2_avg = adaptator.fit()
