@@ -61,7 +61,7 @@ class HumanEyesAdaptator:
             print(f"Average R²: {r2_avg}")
             return k_avg, b_avg, r2_avg
         
-        else:  # Fit sigmoid
+        elif self.fit_func == "sigmoid":  # Fit sigmoid
             k_values = []
             r2_scores = []
 
