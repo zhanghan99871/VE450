@@ -16,7 +16,7 @@ class LuminanceGenerator:
         sample_luminance_values = self.generate_sample_luminance_values()
         print("Sample Luminance Values:")
         for value in sample_luminance_values:
-            print(f"{value:.2f} cd/m²")
+            print(f"{value:.6g} cd/m²")
 
 # Example usage
 initial_luminance = 6809.47  # TODO: Initial luminance in cd/m²
