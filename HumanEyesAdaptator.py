@@ -6,18 +6,19 @@ from RawImage import RawImage
 from generate_luminance_values import LuminanceGenerator
 
 class HumanEyesAdaptator:
-    def __init__(self, initial_txt_file, adjusted_txt_files, initial_luminance):
-        self.X = self.extract_luminance(initial_txt_file)
-        self.Y_files = adjusted_txt_files
+    def __init__(self, initial_png_file, adjusted_png_files, initial_luminance):
+        self.X = self.extract_luminance_from_png(initial_png_file)
+        self.Y_files = adjusted_png_files
         self.X_Max = self.X.max()
         self.initial_luminance = initial_luminance 
         self.luminance_generator = LuminanceGenerator(self.initial_luminance)
         self.X_Ave_values = self.generate_sample_luminance_values()
 
-    def extract_luminance(self, txt_file):
-        image = RawImage(txt_file)
-        image.loadLuminance(txt_file)
-        return image.luminance[:, :, 0]
+    def extract_luminance_from_png(self, png_file):
+        image = RawImage(None)  # txt_file is not needed here
+        image.loadRGB(png_file)
+        image.convert_rgb_to_lab_luminance()
+        return image.luminance
 
     def apply_brightness_adjustment(self, df, X_Ave, k, b, epsilon=1e-10):
         df = df + epsilon  # Add epsilon to avoid log10(0)
@@ -35,7 +36,7 @@ class HumanEyesAdaptator:
         r2_scores = []
 
         for i, y_file in enumerate(self.Y_files):
-            Y = self.extract_luminance(y_file)
+            Y = self.extract_luminance_from_png(y_file)
             X_Ave = self.X_Ave_values[i]
             
             params, _ = curve_fit(lambda X, k, b: self.gamma_function(X, k, b, X_Ave), self.X.ravel(), Y.ravel())
@@ -58,15 +59,15 @@ class HumanEyesAdaptator:
     def generate_sample_luminance_values(self):
         return self.luminance_generator.generate_sample_luminance_values()
 
-# TODO: replace with actual file paths
-initial_txt_file = '/path/to/initial.txt'
-adjusted_txt_files = [
-    '/path/to/adjust1.txt','/path/to/adjust2.txt', #...
-]
-initial_luminance = 6809.47  # TODO: Initial luminance in cd/m²
+# Example usage:
 
-adaptator = HumanEyesAdaptator(initial_txt_file, adjusted_txt_files, initial_luminance)
+initial_png_file = '/path/to/initial.png'
+adjusted_png_files = [
+    '/path/to/adjust1.png', '/path/to/adjust2.png', #...
+]
+initial_luminance = 6809.47  # Initial luminance in cd/m²
+
+adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance)
 
 # Fit gamma
 k, b, r2_avg = adaptator.fit_gamma()
-    
