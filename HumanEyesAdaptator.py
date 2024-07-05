@@ -15,7 +15,7 @@ class HumanEyesAdaptator:
         self.X_Ave_values = self.generate_sample_luminance_values()
 
     def extract_luminance_from_png(self, png_file):
-        image = RawImage(None)  # txt_file is not needed here
+        image = RawImage()
         image.loadRGB(png_file)
         image.convert_rgb_to_lab_luminance()
         return image.luminance
@@ -61,9 +61,9 @@ class HumanEyesAdaptator:
 
 # Example usage:
 
-initial_png_file = '/path/to/initial.png'
+initial_png_file = '/home/yaqing/ve450/Human_eye-Adaptation-Rendering-Algorithm/data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_init.png'
 adjusted_png_files = [
-    '/path/to/adjust1.png', '/path/to/adjust2.png', #...
+    '/home/yaqing/ve450/Human_eye-Adaptation-Rendering-Algorithm/data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_init.png' 
 ]
 initial_luminance = 6809.47  # Initial luminance in cd/m²
 
