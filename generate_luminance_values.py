@@ -4,7 +4,7 @@ class LuminanceGenerator:
     def __init__(self, initial_luminance):
         self.initial_luminance = initial_luminance
 
-    def generate_sample_luminance_values(self, num_samples=30):
+    def generate_sample_luminance_values(self, num_samples=10):
         # Define a range that is more centered around the initial luminance value
         min_luminance = self.initial_luminance * 0.01  # TODO: Adjust this factor as needed
         max_luminance = self.initial_luminance * 100   # TODO: Adjust this factor as needed

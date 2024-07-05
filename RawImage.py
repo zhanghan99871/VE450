@@ -29,7 +29,7 @@ class RawImage:
             print("Luminance data is not loaded.")
 
 # Example usage
-image = RawImage()
-image.loadRGB('/home/yaqing/ve450/Human_eye-Adaptation-Rendering-Algorithm/data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_init.png')
-image.convert_rgb_to_lab_luminance()
-image.saveLuminance('luminance_image.png')
+# image = RawImage()
+# image.loadRGB('/home/yaqing/ve450/Human_eye-Adaptation-Rendering-Algorithm/data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_init.png')
+# image.convert_rgb_to_lab_luminance()
+# image.saveLuminance('luminance_image.png')
