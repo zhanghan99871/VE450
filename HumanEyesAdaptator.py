@@ -121,7 +121,7 @@ class HumanEyesAdaptator:
                 comparison_img = np.hstack((original_img, adjusted_img))
                 
                 # Add title with the luminance value and R² score
-                title = f"Sample Luminance: {luminance_value:.2f} cd/m², R²: {r2_score_val:.2f}"
+                title = f"Sample Luminance: {luminance_value:.2f} cd/m^2, R^2: {r2_score_val:.2f}"
                 font = cv.FONT_HERSHEY_SIMPLEX
                 font_scale = 1
                 thickness = 2
