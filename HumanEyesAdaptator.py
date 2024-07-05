@@ -4,6 +4,7 @@ from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
 import os
 import cv2 as cv
+from skimage.metrics import mean_squared_error as mse
 from RawImage import RawImage
 from generate_luminance_values import LuminanceGenerator
 
@@ -41,6 +42,7 @@ class HumanEyesAdaptator:
             k_values = []
             b_values = []
             r2_scores = []
+            delta_Es = []
 
             for i, y_file in enumerate(self.Y_files):
                 Y = self.extract_luminance_from_png(y_file)
@@ -54,6 +56,10 @@ class HumanEyesAdaptator:
                 Y_pred = self.gamma_function(self.X, params[0], params[1], X_Ave)
                 r2 = r2_score(Y.ravel(), Y_pred.ravel())
                 r2_scores.append(r2)
+
+                # Calculate ΔE
+                delta_E = np.sqrt(mse(Y, Y_pred))
+                delta_Es.append(delta_E)
             
             k_avg = np.mean(k_values)
             b_avg = np.mean(b_values)
@@ -61,11 +67,12 @@ class HumanEyesAdaptator:
 
             print(f"Fitted parameters: k = {k_avg}, b = {b_avg}")
             print(f"Average R²: {r2_avg}")
-            return k_avg, b_avg, r2_avg, r2_scores
+            return k_avg, b_avg, r2_avg, r2_scores, delta_Es
         
         elif self.fit_func == "sigmoid":  # Fit sigmoid
             k_values = []
             r2_scores = []
+            delta_Es = []
 
             for i, y_file in enumerate(self.Y_files):
                 Y = self.extract_luminance_from_png(y_file)
@@ -78,23 +85,27 @@ class HumanEyesAdaptator:
                 Y_pred = self.sigmoid(self.X, params[0], X_Ave)
                 r2 = r2_score(Y.ravel(), Y_pred.ravel())
                 r2_scores.append(r2)
+
+                # Calculate ΔE
+                delta_E = np.sqrt(mse(Y, Y_pred))
+                delta_Es.append(delta_E)
             
             k_avg = np.mean(k_values)
             r2_avg = np.mean(r2_scores)
 
             print(f"Fitted parameters: k = {k_avg}")
             print(f"Average R²: {r2_avg}")
-            return k_avg, r2_avg, r2_scores
+            return k_avg, r2_avg, r2_scores, delta_Es
 
     def generate_sample_luminance_values(self):
         return self.luminance_generator.generate_sample_luminance_values()
 
-    def save_comparison_images(self, output_dir, k, b, sample_luminance_values, r2_scores):
+    def save_comparison_images(self, output_dir, k, b, sample_luminance_values, r2_scores, delta_Es):
         # Ensure the output directory exists
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
-        for i, (y_file, luminance_value, r2_score_val) in enumerate(zip(self.Y_files, sample_luminance_values, r2_scores)):
+        for i, (y_file, luminance_value, r2_score_val, delta_E_val) in enumerate(zip(self.Y_files, sample_luminance_values, r2_scores, delta_Es)):
             try:
                 original_img = cv.imread(y_file)
                 image = RawImage()
@@ -120,8 +131,8 @@ class HumanEyesAdaptator:
                 # Combine images side by side
                 comparison_img = np.hstack((original_img, adjusted_img))
                 
-                # Add title with the luminance value and R² score
-                title = f"Sample Luminance: {luminance_value:.2f} cd/m^2, R^2: {r2_score_val:.2f}"
+                # Add title with the luminance value, R² score, and ΔE
+                title = f"Sample Luminance: {luminance_value:.2f} cd/m^2, R^2: {r2_score_val:.2f}, DeltaE: {delta_E_val:.2f}"
                 font = cv.FONT_HERSHEY_SIMPLEX
                 font_scale = 1
                 thickness = 2
@@ -133,6 +144,28 @@ class HumanEyesAdaptator:
                 print(f"Comparison image saved to {output_path}")
             except Exception as e:
                 print(f"Error processing file {y_file}: {e}")
+
+    def visualize_fit(self, k, b, r2_scores, delta_Es, output_file):
+        plt.figure(figsize=(10, 6))
+        
+        # Plot R² values
+        plt.subplot(1, 2, 1)
+        plt.plot(range(1, len(r2_scores) + 1), r2_scores, marker='o')
+        plt.xlabel('Image Index')
+        plt.ylabel('R² Score')
+        plt.title('R² Scores for Each Adjusted Image')
+        
+        # Plot ΔE values
+        plt.subplot(1, 2, 2)
+        plt.plot(range(1, len(delta_Es) + 1), delta_Es, marker='o')
+        plt.xlabel('Image Index')
+        plt.ylabel('ΔE')
+        plt.title('ΔE for Each Adjusted Image')
+        
+        plt.tight_layout()
+        plt.savefig(output_file, dpi=300)
+        plt.close()
+        print(f"Figure saved to {output_file}")
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
@@ -154,9 +187,13 @@ initial_luminance = 6809.47  # Initial luminance in cd/m²
 adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
 
 # Fit gamma
-k, b, r2_avg, r2_scores = adaptator.fit()
+k, b, r2_avg, r2_scores, delta_Es = adaptator.fit()
 
 # Save comparison images
 output_dir = os.path.join(current_path, 'data/comparison_images')
 sample_luminance_values = adaptator.generate_sample_luminance_values()
-adaptator.save_comparison_images(output_dir, k, b, sample_luminance_values, r2_scores)
+adaptator.save_comparison_images(output_dir, k, b, sample_luminance_values, r2_scores, delta_Es)
+
+# Visualize the fit and save the figure
+output_file = os.path.join(current_path, 'data/r2_and_delta_e.png')
+adaptator.visualize_fit(k, b, r2_scores, delta_Es, output_file)
