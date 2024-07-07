@@ -237,7 +237,7 @@ class HumanEyesAdaptator:
             except Exception as e:
                 logging.error(f"Error processing file {y_file}: {e}")
 
-    def visualize_fit(self, k, b, c, r2_scores, delta_Es, output_file):
+    def visualize_fit(self, k, b, c, r2_scores, delta_Es, output_file, r2_avg):
         plt.figure(figsize=(10, 6))
         
         # Plot R² values
@@ -254,6 +254,9 @@ class HumanEyesAdaptator:
         plt.ylabel('ΔE')
         plt.title('ΔE for Each Adjusted Image')
         
+        # Add k, b, c values and average R² to the plot
+        plt.figtext(0.5, 0.01, f'Fitted parameters: k = {k:.2f}, b = {b:.2f}, c = {c:.2f} | Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
+        
         plt.tight_layout()
         plt.savefig(output_file, dpi=300)
         plt.close()
@@ -261,20 +264,20 @@ class HumanEyesAdaptator:
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
-initial_png_file = os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_original.png')
+initial_png_file = os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png')
 adjusted_png_files = [
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_002.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_003.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_004.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_005.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_006.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_007.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_008.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_009.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_0010.png'),
-    os.path.join(current_path, 'data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_0011.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_001.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_002.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_003.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_004.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_005.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_006.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_007.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_008.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_009.png'),
+    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_0010.png'),
 ]
-initial_luminance = 6809.47  # Initial luminance in cd/m²
+initial_luminance = 2654.74  # Initial luminance in cd/m²
 
 adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
 
@@ -282,10 +285,10 @@ adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_lum
 k, b, c, r2_avg, r2_scores, delta_Es = adaptator.fit()
 
 # Save comparison images
-output_dir = os.path.join(current_path, 'data/comparison_images')
+output_dir = os.path.join(current_path, 'data/comparison_images_vw310')
 sample_luminance_values = adaptator.generate_sample_luminance_values()
 adaptator.save_comparison_images(output_dir, k, b, c, sample_luminance_values, r2_scores, delta_Es)
 
 # Visualize the fit and save the figure
 output_file = os.path.join(current_path, 'data/r2_and_delta_e.png')
-adaptator.visualize_fit(k, b, c, r2_scores, delta_Es, output_file)
+adaptator.visualize_fit(k, b, c, r2_scores, delta_Es, output_file, r2_avg)
