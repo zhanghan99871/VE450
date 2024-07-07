@@ -5,8 +5,12 @@ import matplotlib.pyplot as plt
 import os
 import cv2 as cv
 from skimage.metrics import mean_squared_error as mse
+import logging
 from RawImage import RawImage
 from generate_luminance_values import LuminanceGenerator
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class HumanEyesAdaptator:
     def __init__(self, initial_png_file, adjusted_png_files, initial_luminance, fit_func):
@@ -25,26 +29,27 @@ class HumanEyesAdaptator:
         return image.luminance
 
     def apply_brightness_adjustment(self, df, X_Ave, k, b, c, epsilon=1e-10, max_val=1e3):
-        df = df + epsilon  # Add epsilon to avoid log10(0)
-        X_Ave_adjusted = 1 + c * X_Ave
-        if isinstance(X_Ave_adjusted, np.ndarray):
-            X_Ave_adjusted[X_Ave_adjusted <= 0] = epsilon  # Ensure positive values
-        else:
-            X_Ave_adjusted = max(X_Ave_adjusted, epsilon)
-        
-        inner_term = df / self.X_Max
-        inner_term[inner_term <= 0] = epsilon  # Ensure positive values
-        inner_term = np.clip(inner_term, 0, max_val)  # Cap to max_val
-
-        exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
-        exponent = np.clip(exponent, -max_val, max_val)  # Cap to prevent overflow
-
-        with np.errstate(over='ignore'):  # Suppress overflow warnings
-            power_term = np.power(inner_term, exponent)
-            power_term = np.clip(power_term, -max_val, max_val)  # Cap to prevent overflow
-
-        Y = 100 * np.log10(1 + 9 * power_term)
-        return Y
+        try:
+            df = df + epsilon  # Add epsilon to avoid log10(0)
+            X_Ave_adjusted = 1 + c * X_Ave
+            X_Ave_adjusted = np.clip(X_Ave_adjusted, epsilon, max_val)
+            
+            inner_term = df / self.X_Max
+            inner_term = np.clip(inner_term, epsilon, max_val)
+            
+            exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
+            exponent = np.clip(exponent, -max_val, max_val)
+            
+            with np.errstate(over='ignore'):  # Suppress overflow warnings
+                power_term = np.power(inner_term, exponent)
+                power_term = np.clip(power_term, -max_val, max_val)
+            
+            Y = 100 * np.log10(1 + 9 * power_term)
+            logging.info(f"Brightness adjustment applied successfully.")
+            return Y
+        except Exception as e:
+            logging.error(f"Error in apply_brightness_adjustment: {e}")
+            return np.zeros_like(df)  # Return a default value to prevent crashes
 
     def gamma_function(self, X, k, b, c, X_Ave, epsilon=1e-10, max_val=1e3):
         X = X + epsilon  # Add epsilon to avoid log10(0)
@@ -84,8 +89,8 @@ class HumanEyesAdaptator:
                 X_Ave = self.X_Ave_values[i]
                 
                 # Provide initial guesses and bounds for parameters
-                initial_guesses = [1.0, 1.0, 1.0]
-                bounds = ([0, -np.inf, 0], [np.inf, np.inf, np.inf])
+                initial_guesses = [10.0, 0.0, 5.0]
+                bounds = ([1, -10, 1], [50, 50, 50])
                 
                 try:
                     params, _ = curve_fit(
@@ -158,7 +163,6 @@ class HumanEyesAdaptator:
             print(f"Average R²: {r2_avg}")
             return k_avg, r2_avg, r2_scores, delta_Es
 
-
     def generate_sample_luminance_values(self):
         return self.luminance_generator.generate_sample_luminance_values()
 
@@ -170,20 +174,46 @@ class HumanEyesAdaptator:
         for i, (y_file, luminance_value, r2_score_val, delta_E_val) in enumerate(zip(self.Y_files, sample_luminance_values, r2_scores, delta_Es)):
             try:
                 original_img = cv.imread(y_file)
+                if original_img is None:
+                    logging.error(f"Failed to load image file {y_file}")
+                    continue
+
                 image = RawImage()
                 image.loadRGB(y_file)
                 
                 # Convert original image to LAB color space
                 lab_original = cv.cvtColor(original_img, cv.COLOR_BGR2LAB)
                 l, a, b_ch = cv.split(lab_original)
+
+                # Ensure that the original L channel is in the correct range
+                logging.info(f"Original L channel min: {l.min()}, max: {l.max()}")
                 
                 # Apply brightness adjustment to the L channel
                 adjusted_luminance = self.apply_brightness_adjustment(l, self.X_Ave_values[i], k, b, c)
                 
-                # Normalize adjusted luminance to 0-255 range
-                adjusted_luminance = ((adjusted_luminance - adjusted_luminance.min()) / 
-                                      (adjusted_luminance.max() - adjusted_luminance.min()) * 255).astype(np.uint8)
+                # Log the min and max values of adjusted luminance before normalization
+                logging.info(f"Adjusted luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
                 
+                # Normalize adjusted luminance to 0-255 range
+                min_val = adjusted_luminance.min()
+                max_val = adjusted_luminance.max()
+                if max_val - min_val == 0:
+                    logging.error(f"Normalization error: max_val ({max_val}) - min_val ({min_val}) = 0")
+                    continue
+                
+                # Check if min_val is non-zero and log a warning
+                if min_val != 0:
+                    logging.warning(f"Adjusted luminance min is not zero: {min_val}")
+
+                adjusted_luminance = ((adjusted_luminance - min_val) / 
+                                    (max_val - min_val) * 255).astype(np.uint8)
+                
+                # Log the min and max values of adjusted luminance after normalization
+                logging.info(f"Normalized luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
+                
+                # Ensure luminance values are correctly processed
+                adjusted_luminance = np.clip(adjusted_luminance, 0, 255)
+
                 # Merge the adjusted L channel back with the original a and b channels
                 lab_adjusted = cv.merge([adjusted_luminance, a, b_ch])
                 
@@ -203,9 +233,9 @@ class HumanEyesAdaptator:
                 
                 output_path = os.path.join(output_dir, f"comparison_{i+1}.png")
                 cv.imwrite(output_path, comparison_img)
-                print(f"Comparison image saved to {output_path}")
+                logging.info(f"Comparison image saved to {output_path}")
             except Exception as e:
-                print(f"Error processing file {y_file}: {e}")
+                logging.error(f"Error processing file {y_file}: {e}")
 
     def visualize_fit(self, k, b, c, r2_scores, delta_Es, output_file):
         plt.figure(figsize=(10, 6))
@@ -227,7 +257,7 @@ class HumanEyesAdaptator:
         plt.tight_layout()
         plt.savefig(output_file, dpi=300)
         plt.close()
-        print(f"Figure saved to {output_file}")
+        logging.info(f"Figure saved to {output_file}")
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 

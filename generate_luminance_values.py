@@ -19,6 +19,6 @@ class LuminanceGenerator:
             print(f"{value:.6g} cd/m²")
 
 # Example usage
-initial_luminance = 6809.47  # TODO: Initial luminance in cd/m²
-luminance_generator = LuminanceGenerator(initial_luminance)
-luminance_generator.print_sample_luminance_values()
+# initial_luminance = 6809.47  # TODO: Initial luminance in cd/m²
+# luminance_generator = LuminanceGenerator(initial_luminance)
+# luminance_generator.print_sample_luminance_values()
