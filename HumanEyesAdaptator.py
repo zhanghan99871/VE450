@@ -265,20 +265,20 @@ class HumanEyesAdaptator:
 current_path = os.path.abspath(os.path.dirname(__file__))
 
 # TODO: change with real path
-initial_png_file = os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png')
+initial_png_file = os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png')
 adjusted_png_files = [
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_001.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_002.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_003.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_004.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_005.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_006.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_007.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_008.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_009.png'),
-    os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_0010.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_001.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_002.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_003.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_004.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_005.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_006.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_007.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_008.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_009.png'),
+    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_0010.png'),
 ]
-initial_luminance = 2654.74  # TODO: CHANGE Initial luminance in cd/m²
+initial_luminance = 15241.2  # TODO: CHANGE Initial luminance in cd/m²
 
 adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
 
@@ -286,7 +286,7 @@ adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_lum
 k, b, c, r2_avg, r2_scores, delta_Es = adaptator.fit()
 
 # TODO: change with real path, save comparison images
-output_dir = os.path.join(current_path, 'data/comparison_images_vw310')
+output_dir = os.path.join(current_path, 'data/comparison_images_vw331')
 sample_luminance_values = adaptator.generate_sample_luminance_values()
 adaptator.save_comparison_images(output_dir, k, b, c, sample_luminance_values, r2_scores, delta_Es)
 
