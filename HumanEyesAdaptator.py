@@ -24,17 +24,49 @@ class HumanEyesAdaptator:
         image.convert_rgb_to_lab_luminance()
         return image.luminance
 
-    def apply_brightness_adjustment(self, df, X_Ave, k, b, c, epsilon=1e-10):
+    def apply_brightness_adjustment(self, df, X_Ave, k, b, c, epsilon=1e-10, max_val=1e3):
         df = df + epsilon  # Add epsilon to avoid log10(0)
-        # Y = 100 * np.log10(1 + 9 * (df / self.X_Max) ** (k * np.log10(df * X_Ave) + b))
-        Y = 100 * np.log10(1 + 9 * (df / self.X_Max) ** (k * np.log10(1 + c * X_Ave) + b))
+        X_Ave_adjusted = 1 + c * X_Ave
+        if isinstance(X_Ave_adjusted, np.ndarray):
+            X_Ave_adjusted[X_Ave_adjusted <= 0] = epsilon  # Ensure positive values
+        else:
+            X_Ave_adjusted = max(X_Ave_adjusted, epsilon)
+        
+        inner_term = df / self.X_Max
+        inner_term[inner_term <= 0] = epsilon  # Ensure positive values
+        inner_term = np.clip(inner_term, 0, max_val)  # Cap to max_val
+
+        exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
+        exponent = np.clip(exponent, -max_val, max_val)  # Cap to prevent overflow
+
+        with np.errstate(over='ignore'):  # Suppress overflow warnings
+            power_term = np.power(inner_term, exponent)
+            power_term = np.clip(power_term, -max_val, max_val)  # Cap to prevent overflow
+
+        Y = 100 * np.log10(1 + 9 * power_term)
         return Y
 
-    def gamma_function(self, X, k, b, c, X_Ave):
-        epsilon = 1e-10
+    def gamma_function(self, X, k, b, c, X_Ave, epsilon=1e-10, max_val=1e3):
         X = X + epsilon  # Add epsilon to avoid log10(0)
-        # return 100 * np.log10(1 + 9 * (X / self.X_Max) ** (k * np.log10(X * X_Ave) + b))
-        return 100 * np.log10(1 + 9 * (X / self.X_Max) ** (k * np.log10(1 + c * X_Ave) + b))
+        X_Ave_adjusted = 1 + c * X_Ave
+        if isinstance(X_Ave_adjusted, np.ndarray):
+            X_Ave_adjusted[X_Ave_adjusted <= 0] = epsilon  # Ensure positive values
+        else:
+            X_Ave_adjusted = max(X_Ave_adjusted, epsilon)
+        
+        inner_term = X / self.X_Max
+        inner_term[inner_term <= 0] = epsilon  # Ensure positive values
+        inner_term = np.clip(inner_term, 0, max_val)  # Cap to max_val
+
+        exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
+        exponent = np.clip(exponent, -max_val, max_val)  # Cap to prevent overflow
+
+        with np.errstate(over='ignore'):  # Suppress overflow warnings
+            power_term = np.power(inner_term, exponent)
+            power_term = np.clip(power_term, -max_val, max_val)  # Cap to prevent overflow
+
+        gamma_result = 100 * np.log10(1 + 9 * power_term)
+        return gamma_result
     
     def sigmoid(self, X, k, X_Ave):
         return 1 / (1 + np.exp(-k * (X - X_Ave)))
@@ -51,20 +83,32 @@ class HumanEyesAdaptator:
                 Y = self.extract_luminance_from_png(y_file)
                 X_Ave = self.X_Ave_values[i]
                 
-                params, _ = curve_fit(lambda X, k, b, c: self.gamma_function(X, k, b, c, X_Ave), self.X.ravel(), Y.ravel())
-                k_values.append(params[0])
-                b_values.append(params[1])
-                c_values.append(params[2])
+                # Provide initial guesses and bounds for parameters
+                initial_guesses = [1.0, 1.0, 1.0]
+                bounds = ([0, -np.inf, 0], [np.inf, np.inf, np.inf])
                 
-                # Calculate R²
-                Y_pred = self.gamma_function(self.X, params[0], params[1], params[2], X_Ave)
-                r2 = r2_score(Y.ravel(), Y_pred.ravel())
-                r2_scores.append(r2)
+                try:
+                    params, _ = curve_fit(
+                        lambda X, k, b, c: self.gamma_function(X, k, b, c, X_Ave),
+                        self.X.ravel(), Y.ravel(),
+                        p0=initial_guesses, bounds=bounds
+                    )
+                    k_values.append(params[0])
+                    b_values.append(params[1])
+                    c_values.append(params[2])
+                    
+                    # Calculate R²
+                    Y_pred = self.gamma_function(self.X, params[0], params[1], params[2], X_Ave)
+                    r2 = r2_score(Y.ravel(), Y_pred.ravel())
+                    r2_scores.append(r2)
 
-                # Calculate ΔE
-                delta_E = np.sqrt(mse(Y, Y_pred))
-                delta_Es.append(delta_E)
-            
+                    # Calculate ΔE
+                    delta_E = np.sqrt(mse(Y, Y_pred))
+                    delta_Es.append(delta_E)
+                except RuntimeError as e:
+                    print(f"Fit did not converge for file {y_file}: {e}")
+                    continue
+                
             k_avg = np.mean(k_values)
             b_avg = np.mean(b_values)
             c_avg = np.mean(c_values)
@@ -83,24 +127,37 @@ class HumanEyesAdaptator:
                 Y = self.extract_luminance_from_png(y_file)
                 X_Ave = self.X_Ave_values[i]
                 
-                params, _ = curve_fit(lambda X, k: self.sigmoid(X, k, X_Ave), self.X.ravel(), Y.ravel())
-                k_values.append(params[0])
+                # Provide initial guesses and bounds for parameters
+                initial_guesses = [1.0]
+                bounds = ([0], [np.inf])
                 
-                # Calculate R²
-                Y_pred = self.sigmoid(self.X, params[0], X_Ave)
-                r2 = r2_score(Y.ravel(), Y_pred.ravel())
-                r2_scores.append(r2)
+                try:
+                    params, _ = curve_fit(
+                        lambda X, k: self.sigmoid(X, k, X_Ave),
+                        self.X.ravel(), Y.ravel(),
+                        p0=initial_guesses, bounds=bounds
+                    )
+                    k_values.append(params[0])
+                    
+                    # Calculate R²
+                    Y_pred = self.sigmoid(self.X, params[0], X_Ave)
+                    r2 = r2_score(Y.ravel(), Y_pred.ravel())
+                    r2_scores.append(r2)
 
-                # Calculate ΔE
-                delta_E = np.sqrt(mse(Y, Y_pred))
-                delta_Es.append(delta_E)
-            
+                    # Calculate ΔE
+                    delta_E = np.sqrt(mse(Y, Y_pred))
+                    delta_Es.append(delta_E)
+                except RuntimeError as e:
+                    print(f"Fit did not converge for file {y_file}: {e}")
+                    continue
+                
             k_avg = np.mean(k_values)
             r2_avg = np.mean(r2_scores)
 
             print(f"Fitted parameters: k = {k_avg}")
             print(f"Average R²: {r2_avg}")
             return k_avg, r2_avg, r2_scores, delta_Es
+
 
     def generate_sample_luminance_values(self):
         return self.luminance_generator.generate_sample_luminance_values()
