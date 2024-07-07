@@ -264,6 +264,7 @@ class HumanEyesAdaptator:
 
 current_path = os.path.abspath(os.path.dirname(__file__))
 
+# TODO: change with real path
 initial_png_file = os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png')
 adjusted_png_files = [
     os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_001.png'),
@@ -277,18 +278,18 @@ adjusted_png_files = [
     os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_009.png'),
     os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_0010.png'),
 ]
-initial_luminance = 2654.74  # Initial luminance in cd/m²
+initial_luminance = 2654.74  # TODO: CHANGE Initial luminance in cd/m²
 
 adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
 
 # Fit gamma
 k, b, c, r2_avg, r2_scores, delta_Es = adaptator.fit()
 
-# Save comparison images
+# TODO: change with real path, save comparison images
 output_dir = os.path.join(current_path, 'data/comparison_images_vw310')
 sample_luminance_values = adaptator.generate_sample_luminance_values()
 adaptator.save_comparison_images(output_dir, k, b, c, sample_luminance_values, r2_scores, delta_Es)
 
 # Visualize the fit and save the figure
-output_file = os.path.join(current_path, 'data/r2_and_delta_e.png')
+output_file = os.path.join(output_dir, 'r2_and_delta_e.png')
 adaptator.visualize_fit(k, b, c, r2_scores, delta_Es, output_file, r2_avg)
