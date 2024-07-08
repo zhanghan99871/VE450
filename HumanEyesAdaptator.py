@@ -84,9 +84,9 @@ class HumanEyesAdaptator:
             Y = self.extract_luminance_from_png(y_file)
             X_Ave = self.X_Ave_values[i]
             
-            # Provide initial guesses and bounds for parameters
-            initial_guesses = [10.0, 0.0, 5.0]
-            bounds = ([1, -10, 1], [50, 50, 50])
+            # TODO: REPLACE Provide initial guesses and bounds for parameters
+            initial_guesses = [-1, 0.0, 1.0]
+            bounds = ([-5, -10, 0.5], [20, 10, 10])
             
             try:
                 params, _ = curve_fit(
@@ -145,7 +145,7 @@ class HumanEyesAdaptator:
                 logging.info(f"Original L channel min: {l.min()}, max: {l.max()}")
                 
                 # Apply brightness adjustment to the L channel
-                adjusted_luminance = self.apply_brightness_adjustment(l, self.X_Ave_values[i], k, b, c)
+                adjusted_luminance = self.apply_brightness_adjustment(l, luminance_value, k, b, c)
                 
                 # Log the min and max values of adjusted luminance before normalization
                 logging.info(f"Adjusted luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
@@ -193,31 +193,6 @@ class HumanEyesAdaptator:
             except Exception as e:
                 logging.error(f"Error processing file {y_file}: {e}")
 
-    def visualize_fit(self, k, b, c, r2_scores, delta_Es, output_file, r2_avg):
-        plt.figure(figsize=(10, 6))
-        
-        # Plot R² values
-        plt.subplot(1, 2, 1)
-        plt.plot(range(1, len(r2_scores) + 1), r2_scores, marker='o')
-        plt.xlabel('Image Index')
-        plt.ylabel('R² Score')
-        plt.title('R² Scores for Each Adjusted Image')
-        
-        # Plot ΔE values
-        plt.subplot(1, 2, 2)
-        plt.plot(range(1, len(delta_Es) + 1), delta_Es, marker='o')
-        plt.xlabel('Image Index')
-        plt.ylabel('ΔE')
-        plt.title('ΔE for Each Adjusted Image')
-        
-        # Add k, b, c values and average R² to the plot
-        plt.figtext(0.5, 0.01, f'Fitted parameters: k = {k:.2f}, b = {b:.2f}, c = {c:.2f} | Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
-        
-        plt.tight_layout()
-        plt.savefig(output_file, dpi=300)
-        plt.close()
-        logging.info(f"Figure saved to {output_file}")
-
 def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
     all_params = []
     luminance_values = []
@@ -230,6 +205,10 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
         k, b, c, r2_avg, r2_scores, delta_Es = adaptator.fit()
         all_params.append((k, b, c))
         luminance_values.append(np.log(initial_luminance))  # Use log(initial_luminance) for fitting
+
+        # Save comparison images using fitted k, b, and c
+        output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
+        adaptator.save_comparison_images(output_dir, k, b, c, adaptator.X_Ave_values, r2_scores, delta_Es)
 
     return all_params, luminance_values
 
@@ -315,10 +294,11 @@ def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_param
     plt.savefig(output_file, dpi=300)
     plt.close()
 
+# Paths and data sets
 current_path = os.path.abspath(os.path.dirname(__file__))
 output_base_dir = os.path.join(current_path, 'data/comparison_images')
 
-# List of data sets, each represented as (initial_png_file, adjusted_png_files, initial_luminance)
+
 data_sets = [
     (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
      [
@@ -457,15 +437,16 @@ data_sets = [
     # Add more data sets here
 ]
 
-# Fit on all data sets separately to get individual k, b, and c values
+# Fit on all data sets separately to get individual k, b, and c values and save comparison images
 all_params, luminance_values = fit_on_all_data_sets(data_sets, "gamma", output_base_dir)
 
 # Fit relationships of k, b, and c with log(initial_luminance)
 k_params, b_params, c_params = fit_relationships(all_params, luminance_values)
 
-# Apply the generalized model to all data
+# Apply the generalized model to all data and save comparison images
 all_r2_scores, all_delta_Es = apply_generalized_model(data_sets, k_params, b_params, c_params, output_base_dir)
 
 # Visualize and save the R² and ΔE curve diagrams for all data
 output_file = os.path.join(output_base_dir, 'r2_and_delta_e_all_data.png')
 visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_params, b_params, c_params, np.mean([item for sublist in all_r2_scores for item in sublist]))
+
