@@ -1,12 +1,11 @@
 import RawImage
 
-
+mode = ["Gamut clipping", "Maintain lightness and hue", "Maintain hue"]
 # Replace with actual file path
 def main():
     image = RawImage.RawImage()
     image.loadRGB('./data/VW216/VW216.RTSL-BUL.HV_002.png')
-    image.convert_rgb_to_lab_luminance()
-    image.saveLuminance('luminance_image.png')
+    image.gamut_clipping(mode[0], "0.png")
     #img = RawImage.RawImage(600, 1500)
     #img.loadRGB("./data/VW216.RTSL-BUL.HV_001.png")
     #img.loadLuminance("./data/VW216.RTSL-BUL.HV_001.txt")
