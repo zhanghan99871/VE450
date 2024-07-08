@@ -1,13 +1,13 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from sklearn.metrics import r2_score
-import matplotlib.pyplot as plt
 import os
 import cv2 as cv
 from skimage.metrics import mean_squared_error as mse
 import logging
 from RawImage import RawImage
 from generate_luminance_values import LuminanceGenerator
+import matplotlib.pyplot as plt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -73,95 +73,51 @@ class HumanEyesAdaptator:
         gamma_result = 100 * np.log10(1 + 9 * power_term)
         return gamma_result
     
-    def sigmoid(self, X, k, X_Ave):
-        return 1 / (1 + np.exp(-k * (X - X_Ave)))
-
     def fit(self):
-        if self.fit_func == "gamma":  # Fit gamma
-            k_values = []
-            b_values = []
-            c_values = []
-            r2_scores = []
-            delta_Es = []
+        k_values = []
+        b_values = []
+        c_values = []
+        r2_scores = []
+        delta_Es = []
 
-            for i, y_file in enumerate(self.Y_files):
-                Y = self.extract_luminance_from_png(y_file)
-                X_Ave = self.X_Ave_values[i]
+        for i, y_file in enumerate(self.Y_files):
+            Y = self.extract_luminance_from_png(y_file)
+            X_Ave = self.X_Ave_values[i]
+            
+            # Provide initial guesses and bounds for parameters
+            initial_guesses = [10.0, 0.0, 5.0]
+            bounds = ([1, -10, 1], [50, 50, 50])
+            
+            try:
+                params, _ = curve_fit(
+                    lambda X, k, b, c: self.gamma_function(X, k, b, c, X_Ave),
+                    self.X.ravel(), Y.ravel(),
+                    p0=initial_guesses, bounds=bounds
+                )
+                k_values.append(params[0])
+                b_values.append(params[1])
+                c_values.append(params[2])
                 
-                # Provide initial guesses and bounds for parameters
-                initial_guesses = [10.0, 0.0, 5.0]
-                bounds = ([1, -10, 1], [50, 50, 50])
-                
-                try:
-                    params, _ = curve_fit(
-                        lambda X, k, b, c: self.gamma_function(X, k, b, c, X_Ave),
-                        self.X.ravel(), Y.ravel(),
-                        p0=initial_guesses, bounds=bounds
-                    )
-                    k_values.append(params[0])
-                    b_values.append(params[1])
-                    c_values.append(params[2])
-                    
-                    # Calculate R²
-                    Y_pred = self.gamma_function(self.X, params[0], params[1], params[2], X_Ave)
-                    r2 = r2_score(Y.ravel(), Y_pred.ravel())
-                    r2_scores.append(r2)
+                # Calculate R²
+                Y_pred = self.gamma_function(self.X, params[0], params[1], params[2], X_Ave)
+                r2 = r2_score(Y.ravel(), Y_pred.ravel())
+                r2_scores.append(r2)
 
-                    # Calculate ΔE
-                    delta_E = np.sqrt(mse(Y, Y_pred))
-                    delta_Es.append(delta_E)
-                except RuntimeError as e:
-                    print(f"Fit did not converge for file {y_file}: {e}")
-                    continue
-                
-            k_avg = np.mean(k_values)
-            b_avg = np.mean(b_values)
-            c_avg = np.mean(c_values)
-            r2_avg = np.mean(r2_scores)
+                # Calculate ΔE
+                delta_E = np.sqrt(mse(Y, Y_pred))
+                delta_Es.append(delta_E)
+            except RuntimeError as e:
+                print(f"Fit did not converge for file {y_file}: {e}")
+                continue
+            
+        k_avg = np.mean(k_values)
+        b_avg = np.mean(b_values)
+        c_avg = np.mean(c_values)
+        r2_avg = np.mean(r2_scores)
 
-            print(f"Fitted parameters: k = {k_avg}, b = {b_avg}, c = {c_avg}")
-            print(f"Average R²: {r2_avg}")
-            return k_avg, b_avg, c_avg, r2_avg, r2_scores, delta_Es
-        
-        elif self.fit_func == "sigmoid":  # Fit sigmoid
-            k_values = []
-            r2_scores = []
-            delta_Es = []
-
-            for i, y_file in enumerate(self.Y_files):
-                Y = self.extract_luminance_from_png(y_file)
-                X_Ave = self.X_Ave_values[i]
-                
-                # Provide initial guesses and bounds for parameters
-                initial_guesses = [1.0]
-                bounds = ([0], [np.inf])
-                
-                try:
-                    params, _ = curve_fit(
-                        lambda X, k: self.sigmoid(X, k, X_Ave),
-                        self.X.ravel(), Y.ravel(),
-                        p0=initial_guesses, bounds=bounds
-                    )
-                    k_values.append(params[0])
-                    
-                    # Calculate R²
-                    Y_pred = self.sigmoid(self.X, params[0], X_Ave)
-                    r2 = r2_score(Y.ravel(), Y_pred.ravel())
-                    r2_scores.append(r2)
-
-                    # Calculate ΔE
-                    delta_E = np.sqrt(mse(Y, Y_pred))
-                    delta_Es.append(delta_E)
-                except RuntimeError as e:
-                    print(f"Fit did not converge for file {y_file}: {e}")
-                    continue
-                
-            k_avg = np.mean(k_values)
-            r2_avg = np.mean(r2_scores)
-
-            print(f"Fitted parameters: k = {k_avg}")
-            print(f"Average R²: {r2_avg}")
-            return k_avg, r2_avg, r2_scores, delta_Es
+        print(f"Fitted parameters: k = {k_avg}, b = {b_avg}, c = {c_avg}")
+        print(f"Average R²: {r2_avg}")
+        return k_avg, b_avg, c_avg, r2_avg, r2_scores, delta_Es
 
     def generate_sample_luminance_values(self):
         return self.luminance_generator.generate_sample_luminance_values()
@@ -262,34 +218,312 @@ class HumanEyesAdaptator:
         plt.close()
         logging.info(f"Figure saved to {output_file}")
 
+def fit_and_compare(data_sets, fit_func, output_base_dir):
+    best_r2_avg = -np.inf
+    best_params = None
+    best_r2_scores = None
+    best_delta_Es = None
+    best_output_dir = None
+
+    for data_set in data_sets:
+        initial_png_file, adjusted_png_files, initial_luminance = data_set
+        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, fit_func)
+
+        # Fit gamma
+        k, b, c, r2_avg, r2_scores, delta_Es = adaptator.fit()
+
+        # Save comparison images
+        output_dir = os.path.join(output_base_dir, os.path.basename(initial_png_file).split('.')[0])
+        sample_luminance_values = adaptator.generate_sample_luminance_values()
+        adaptator.save_comparison_images(output_dir, k, b, c, sample_luminance_values, r2_scores, delta_Es)
+
+        # Visualize the fit and save the figure
+        output_file = os.path.join(output_dir, 'r2_and_delta_e.png')
+        adaptator.visualize_fit(k, b, c, r2_scores, delta_Es, output_file, r2_avg)
+
+        # Compare and update the best fit
+        if r2_avg > best_r2_avg:
+            best_r2_avg = r2_avg
+            best_params = (k, b, c)
+            best_r2_scores = r2_scores
+            best_delta_Es = delta_Es
+            best_output_dir = output_dir
+
+    print(f"Best fitted parameters: k = {best_params[0]}, b = {best_params[1]}, c = {best_params[2]}")
+    print(f"Best Average R²: {best_r2_avg}")
+
+    return best_params, best_r2_avg, best_r2_scores, best_delta_Es, best_output_dir
+
+def apply_best_fit_to_all_data(data_sets, best_params, output_base_dir):
+    k, b, c = best_params
+
+    all_r2_scores = []
+    all_delta_Es = []
+
+    for data_set in data_sets:
+        initial_png_file, adjusted_png_files, initial_luminance = data_set
+        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
+        
+        # Save adjusted images using best fit parameters
+        output_dir = os.path.join(output_base_dir, 'adjusted_with_best_fit', os.path.basename(initial_png_file).split('.')[0])
+        sample_luminance_values = adaptator.generate_sample_luminance_values()
+
+        r2_scores = []
+        delta_Es = []
+
+        for i, y_file in enumerate(adjusted_png_files):
+            Y = adaptator.extract_luminance_from_png(y_file)
+            X_Ave = adaptator.X_Ave_values[i]
+
+            # Calculate adjusted luminance
+            Y_pred = adaptator.apply_brightness_adjustment(adaptator.X, X_Ave, k, b, c)
+            
+            # Calculate R² and ΔE
+            r2 = r2_score(Y.ravel(), Y_pred.ravel())
+            delta_E = np.sqrt(mse(Y, Y_pred))
+            r2_scores.append(r2)
+            delta_Es.append(delta_E)
+
+        all_r2_scores.append(r2_scores)
+        all_delta_Es.append(delta_Es)
+
+        adaptator.save_comparison_images(output_dir, k, b, c, sample_luminance_values, r2_scores, delta_Es)
+
+    return all_r2_scores, all_delta_Es
+
+def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, best_params, best_r2_avg):
+    plt.figure(figsize=(10, 6))
+
+    for r2_scores, delta_Es in zip(all_r2_scores, all_delta_Es):
+        # Plot R² values
+        plt.subplot(1, 2, 1)
+        plt.plot(range(1, len(r2_scores) + 1), r2_scores, marker='o')
+        plt.xlabel('Image Index')
+        plt.ylabel('R² Score')
+        plt.title('R² Scores for Each Adjusted Image')
+
+        # Plot ΔE values
+        plt.subplot(1, 2, 2)
+        plt.plot(range(1, len(delta_Es) + 1), delta_Es, marker='o')
+        plt.xlabel('Image Index')
+        plt.ylabel('ΔE')
+        plt.title('ΔE for Each Adjusted Image')
+
+    # Add best parameters and average R² to the plot
+    plt.figtext(0.5, 0.01, f'Best fitted parameters: k = {best_params[0]:.2f}, b = {best_params[1]:.2f}, c = {best_params[2]:.2f} | Best Average R²: {best_r2_avg:.2f}', ha='center', fontsize=10)
+    
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
 current_path = os.path.abspath(os.path.dirname(__file__))
+output_base_dir = os.path.join(current_path, 'data/comparison_images')
 
-# TODO: change with real path
-initial_png_file = os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png')
-adjusted_png_files = [
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_001.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_002.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_003.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_004.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_005.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_006.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_007.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_008.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_009.png'),
-    os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_0010.png'),
+# List of data sets, each represented as (initial_png_file, adjusted_png_files, initial_luminance)
+data_sets = [
+    (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
+     [
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_001.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_002.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_003.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_004.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_005.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_006.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_007.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_008.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_009.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0010.png')
+     ],
+     6809.47),
+    
+    (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
+     [
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_001.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_002.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_003.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_004.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_005.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_006.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_007.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_008.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_009.png'),
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_0010.png')
+     ],
+     2654.74),
+    
+    (os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
+     [
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_001.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_002.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_003.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_004.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_005.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_006.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_007.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_008.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_009.png'),
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_0010.png')
+     ],
+     1744.43),
+    
+    (os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
+     [
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_001.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_002.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_003.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_004.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_005.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_006.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_007.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_008.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_009.png'),
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_0010.png')
+     ],
+     2124.45),
+    
+    (os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_25.1441.png'),
+     [
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_001.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_002.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_003.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_004.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_005.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_006.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_007.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_008.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_009.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0010.png')
+     ],
+     25.1441),
+    
+    (os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
+     [
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_001.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_002.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_003.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_004.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_005.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_006.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_007.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_008.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_009.png'),
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_0010.png')
+     ],
+     2381.67),
+    
+    (os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
+     [
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_001.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_002.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_003.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_004.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_005.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_006.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_007.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_008.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_009.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0010.png')
+     ],
+     49.3145),
+    
+    (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
+     [
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_001.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_002.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_003.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_004.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_005.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_006.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_007.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_008.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_009.png'),
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_0010.png')
+     ],
+     9001.23),
+    
+    (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
+     [
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_001.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_002.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_003.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_004.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_005.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_006.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_007.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_008.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_009.png'),
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_0010.png')
+     ],
+     15241.2),
+    # Add more data sets here
 ]
-initial_luminance = 15241.2  # TODO: CHANGE Initial luminance in cd/m²
 
-adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
+def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
+    all_params = []
 
-# Fit gamma
-k, b, c, r2_avg, r2_scores, delta_Es = adaptator.fit()
+    for data_set in data_sets:
+        initial_png_file, adjusted_png_files, initial_luminance = data_set
+        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, fit_func)
 
-# TODO: change with real path, save comparison images
-output_dir = os.path.join(current_path, 'data/comparison_images_vw331')
-sample_luminance_values = adaptator.generate_sample_luminance_values()
-adaptator.save_comparison_images(output_dir, k, b, c, sample_luminance_values, r2_scores, delta_Es)
+        # Fit gamma
+        k, b, c, r2_avg, r2_scores, delta_Es = adaptator.fit()
+        all_params.append((k, b, c, r2_avg))
 
-# Visualize the fit and save the figure
-output_file = os.path.join(output_dir, 'r2_and_delta_e.png')
-adaptator.visualize_fit(k, b, c, r2_scores, delta_Es, output_file, r2_avg)
+    return all_params
+
+def evaluate_best_params(data_sets, all_params, output_base_dir):
+    best_r2_avg = -np.inf
+    best_params = None
+    best_r2_scores = None
+    best_delta_Es = None
+    best_output_dir = None
+
+    for k, b, c, _ in all_params:
+        all_r2_scores = []
+        all_delta_Es = []
+
+        for data_set in data_sets:
+            initial_png_file, adjusted_png_files, initial_luminance = data_set
+            adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
+
+            r2_scores = []
+            delta_Es = []
+
+            for i, y_file in enumerate(adjusted_png_files):
+                Y = adaptator.extract_luminance_from_png(y_file)
+                X_Ave = adaptator.X_Ave_values[i]
+
+                # Calculate adjusted luminance
+                Y_pred = adaptator.apply_brightness_adjustment(adaptator.X, X_Ave, k, b, c)
+
+                # Calculate R² and ΔE
+                r2 = r2_score(Y.ravel(), Y_pred.ravel())
+                delta_E = np.sqrt(mse(Y, Y_pred))
+                r2_scores.append(r2)
+                delta_Es.append(delta_E)
+
+            all_r2_scores.append(r2_scores)
+            all_delta_Es.append(delta_Es)
+
+        avg_r2 = np.mean([item for sublist in all_r2_scores for item in sublist])
+
+        if avg_r2 > best_r2_avg:
+            best_r2_avg = avg_r2
+            best_params = (k, b, c)
+            best_r2_scores = all_r2_scores
+            best_delta_Es = all_delta_Es
+
+    return best_params, best_r2_avg, best_r2_scores, best_delta_Es
+
+# Fit on all data sets separately
+all_params = fit_on_all_data_sets(data_sets, "gamma", output_base_dir)
+
+# Evaluate the best parameters across all data sets
+best_params, best_r2_avg, best_r2_scores, best_delta_Es = evaluate_best_params(data_sets, all_params, output_base_dir)
+
+# Apply the best fit to all data
+apply_best_fit_to_all_data(data_sets, best_params, output_base_dir)
+
+# Visualize and save the R² and ΔE curve diagrams for all data
+output_file = os.path.join(output_base_dir, 'r2_and_delta_e_all_data.png')
+visualize_best_fit_results(best_r2_scores, best_delta_Es, output_file, best_params, best_r2_avg)
