@@ -240,6 +240,35 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
 
     return all_params, luminance_values
 
+def visualize_params(all_params, initial_luminance, output_file):
+    plt.figure(figsize=(10, 6))
+
+    k = [k for k, _, _ in all_params]
+    b = [b for _, b, _ in all_params]
+    c = [c for _, _, c in all_params]
+
+    plt.subplot(1, 3, 1)
+    plt.scatter(initial_luminance, k)
+    plt.xlabel('log_initial_luminance')
+    plt.ylabel('k')
+    plt.title('Relationship between k and log initial luminance')
+
+    plt.subplot(1, 3, 2)
+    plt.scatter(initial_luminance, b)
+    plt.xlabel('log_initial_luminance')
+    plt.ylabel('b')
+    plt.title('Relationship between b and log initial luminance')
+
+    plt.subplot(1, 3, 3)
+    plt.scatter(initial_luminance, c)
+    plt.xlabel('log_initial_luminance')
+    plt.ylabel('c')
+    plt.title('Relationship between c and log initial luminance')
+    
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=300)
+    plt.close()
+
 
 def fit_relationships(all_params, luminance_values):
     k_values, b_values, c_values = zip(*all_params)
@@ -479,3 +508,5 @@ all_r2_scores, all_delta_Es = apply_generalized_model(data_sets, k_params, b_par
 output_file = os.path.join(output_base_dir, 'r2_and_delta_e_all_data.png')
 visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_params, b_params, c_params, np.mean([item for sublist in all_r2_scores for item in sublist]))
 
+# Visualize and save the relationship between parameters and log luminance
+output_file = os.path.join(output_base_dir, 'param_vs_luminance.png')
