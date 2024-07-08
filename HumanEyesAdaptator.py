@@ -510,3 +510,4 @@ visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_params, b
 
 # Visualize and save the relationship between parameters and log luminance
 output_file = os.path.join(output_base_dir, 'param_vs_luminance.png')
+visualize_params(all_params, luminance_values, output_file)
