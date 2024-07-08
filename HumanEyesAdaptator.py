@@ -119,6 +119,31 @@ class HumanEyesAdaptator:
         print(f"Average R²: {r2_avg}")
         return k_avg, b_avg, c_avg, r2_avg, r2_scores, delta_Es
 
+    def visualize_fit(self, k, b, c, r2_scores, delta_Es, output_file, r2_avg):
+        plt.figure(figsize=(10, 6))
+        
+        # Plot R² values
+        plt.subplot(1, 2, 1)
+        plt.plot(range(1, len(r2_scores) + 1), r2_scores, marker='o')
+        plt.xlabel('Image Index')
+        plt.ylabel('R² Score')
+        plt.title('R² Scores for Each Adjusted Image')
+        
+        # Plot ΔE values
+        plt.subplot(1, 2, 2)
+        plt.plot(range(1, len(delta_Es) + 1), delta_Es, marker='o')
+        plt.xlabel('Image Index')
+        plt.ylabel('ΔE')
+        plt.title('ΔE for Each Adjusted Image')
+        
+        # Add k, b, c values and average R² to the plot
+        plt.figtext(0.5, 0.01, f'Fitted parameters: k = {k:.2f}, b = {b:.2f}, c = {c:.2f} | Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
+        
+        plt.tight_layout()
+        plt.savefig(output_file, dpi=300)
+        plt.close()
+        logging.info(f"Figure saved to {output_file}")
+
     def generate_sample_luminance_values(self):
         return self.luminance_generator.generate_sample_luminance_values()
 
@@ -210,7 +235,11 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
         output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
         adaptator.save_comparison_images(output_dir, k, b, c, adaptator.X_Ave_values, r2_scores, delta_Es)
 
+        # Visualize R² and ΔE curve for each fit
+        adaptator.visualize_fit(k, b, c, r2_scores, delta_Es, os.path.join(output_dir, 'r2_and_delta_e_curve.png'), r2_avg)
+
     return all_params, luminance_values
+
 
 def fit_relationships(all_params, luminance_values):
     k_values, b_values, c_values = zip(*all_params)
