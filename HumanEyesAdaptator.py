@@ -110,16 +110,16 @@ class HumanEyesAdaptator:
                 print(f"Fit did not converge for file {y_file}: {e}")
                 continue
             
-        k_avg = np.mean(k_values)
-        b_avg = np.mean(b_values)
-        c_avg = np.mean(c_values)
+        # k_avg = np.mean(k_values)
+        # b_avg = np.mean(b_values)
+        # c_avg = np.mean(c_values)
         r2_avg = np.mean(r2_scores)
 
-        print(f"Fitted parameters: k = {k_avg}, b = {b_avg}, c = {c_avg}")
+        print(f"Fitted parameters: k = {np.mean(k_values)}, b = {np.mean(b_values)}, c = {np.mean(c_values)}")
         print(f"Average R²: {r2_avg}")
-        return k_avg, b_avg, c_avg, r2_avg, r2_scores, delta_Es
+        return k_values, b_values, c_values, r2_avg, r2_scores, delta_Es
 
-    def visualize_fit(self, k, b, c, r2_scores, delta_Es, output_file, r2_avg):
+    def visualize_fit(self, k_values, b_values, c_values, r2_scores, delta_Es, output_file, r2_avg):
         plt.figure(figsize=(10, 6))
         
         # Plot R² values
@@ -137,7 +137,7 @@ class HumanEyesAdaptator:
         plt.title('ΔE for Each Adjusted Image')
         
         # Add k, b, c values and average R² to the plot
-        plt.figtext(0.5, 0.01, f'Fitted parameters: k = {k:.2f}, b = {b:.2f}, c = {c:.2f} | Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
+        plt.figtext(0.5, 0.01, f'Fitted parameters: k = {np.mean(k_values):.2f}, b = {np.mean(b_values):.2f}, c = {np.mean(c_values):.2f} | Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
         
         plt.tight_layout()
         plt.savefig(output_file, dpi=300)
@@ -147,7 +147,7 @@ class HumanEyesAdaptator:
     def generate_sample_luminance_values(self):
         return self.luminance_generator.generate_sample_luminance_values()
 
-    def save_comparison_images(self, output_dir, k, b, c, sample_luminance_values, r2_scores, delta_Es):
+    def save_comparison_images(self, output_dir, k_values, b_values, c_values, sample_luminance_values, r2_scores, delta_Es):
         # Ensure the output directory exists
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -170,7 +170,7 @@ class HumanEyesAdaptator:
                 logging.info(f"Original L channel min: {l.min()}, max: {l.max()}")
                 
                 # Apply brightness adjustment to the L channel
-                adjusted_luminance = self.apply_brightness_adjustment(l, luminance_value, k, b, c)
+                adjusted_luminance = self.apply_brightness_adjustment(l, luminance_value, k_values[i], b_values[i], c_values[i])
                 
                 # Log the min and max values of adjusted luminance before normalization
                 logging.info(f"Adjusted luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
@@ -221,71 +221,98 @@ class HumanEyesAdaptator:
 def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
     all_params = []
     luminance_values = []
+    sample_luminance_values = []
 
     for data_set in data_sets:
         initial_png_file, adjusted_png_files, initial_luminance = data_set
         adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, fit_func)
 
         # Fit gamma
-        k, b, c, r2_avg, r2_scores, delta_Es = adaptator.fit()
-        all_params.append((k, b, c))
+        k_values, b_values, c_values, r2_avg, r2_scores, delta_Es = adaptator.fit()
+        all_params.append((k_values, b_values, c_values))
         luminance_values.append(np.log(initial_luminance))  # Use log(initial_luminance) for fitting
+        sample_luminance_values.append(np.log(adaptator.generate_sample_luminance_values()))
 
         # Save comparison images using fitted k, b, and c
         output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
-        adaptator.save_comparison_images(output_dir, k, b, c, adaptator.X_Ave_values, r2_scores, delta_Es)
+        adaptator.save_comparison_images(output_dir, k_values, b_values, c_values, adaptator.X_Ave_values, r2_scores, delta_Es)
 
         # Visualize R² and ΔE curve for each fit
-        adaptator.visualize_fit(k, b, c, r2_scores, delta_Es, os.path.join(output_dir, 'r2_and_delta_e_curve.png'), r2_avg)
+        adaptator.visualize_fit(k_values, b_values, c_values, r2_scores, delta_Es, os.path.join(output_dir, 'r2_and_delta_e_curve.png'), r2_avg)
 
-    return all_params, luminance_values
+    return all_params, luminance_values, sample_luminance_values
 
-def visualize_params(all_params, initial_luminance, output_file):
-    plt.figure(figsize=(10, 6))
+# def visualize_params(all_params, initial_luminance, output_file):
+#     plt.figure(figsize=(10, 6))
 
-    k = [k for k, _, _ in all_params]
-    b = [b for _, b, _ in all_params]
-    c = [c for _, _, c in all_params]
+#     k = [k for k, _, _ in all_params]
+#     b = [b for _, b, _ in all_params]
+#     c = [c for _, _, c in all_params]
 
-    plt.subplot(1, 3, 1)
-    plt.scatter(initial_luminance, k)
-    plt.xlabel('log_initial_luminance')
-    plt.ylabel('k')
-    plt.title('Relationship between k and log initial luminance')
+#     plt.subplot(1, 3, 1)
+#     plt.scatter(initial_luminance, k)
+#     plt.xlabel('log_initial_luminance')
+#     plt.ylabel('k')
+#     plt.title('Relationship between k and log initial luminance')
 
-    plt.subplot(1, 3, 2)
-    plt.scatter(initial_luminance, b)
-    plt.xlabel('log_initial_luminance')
-    plt.ylabel('b')
-    plt.title('Relationship between b and log initial luminance')
+#     plt.subplot(1, 3, 2)
+#     plt.scatter(initial_luminance, b)
+#     plt.xlabel('log_initial_luminance')
+#     plt.ylabel('b')
+#     plt.title('Relationship between b and log initial luminance')
 
-    plt.subplot(1, 3, 3)
-    plt.scatter(initial_luminance, c)
-    plt.xlabel('log_initial_luminance')
-    plt.ylabel('c')
-    plt.title('Relationship between c and log initial luminance')
+#     plt.subplot(1, 3, 3)
+#     plt.scatter(initial_luminance, c)
+#     plt.xlabel('log_initial_luminance')
+#     plt.ylabel('c')
+#     plt.title('Relationship between c and log initial luminance')
     
-    plt.tight_layout()
-    plt.savefig(output_file, dpi=300)
-    plt.close()
+#     plt.tight_layout()
+#     plt.savefig(output_file, dpi=300)
+#     plt.close()
 
 
-def fit_relationships(all_params, luminance_values):
+def fit_relationships(all_params, luminance_values, sample_luminance_values):
     k_values, b_values, c_values = zip(*all_params)
+    k_values, b_values, c_values = np.array(k_values).ravel(), np.array(b_values).ravel(), np.array(c_values).ravel()
+
+    log_luminance = [item for l in luminance_values for item in [l]*10]
+
+    log_X_ave = list(np.array(sample_luminance_values).ravel())
+
+    x = [log_luminance, log_X_ave]
 
     # Fit linear models for k, b, and c with respect to log(initial_luminance)
     def linear_model(x, m, c):
         return m * x + c
 
-    k_params, _ = curve_fit(linear_model, luminance_values, k_values)
-    b_params, _ = curve_fit(linear_model, luminance_values, b_values)
-    c_params, _ = curve_fit(linear_model, luminance_values, c_values)
+    def multi_var_model(x, b0, b1, b2):
+        return b0 + b1 * x[0] + b2 * x[1]
 
-    return k_params, b_params, c_params
+    k_params, _ = curve_fit(multi_var_model, x, k_values)
+    b_params, _ = curve_fit(multi_var_model, x, b_values)
+    c_params, _ = curve_fit(multi_var_model, x, c_values)
+
+    k_pred = k_params[0] + k_params[1] * np.array(x[0]) + k_params[2] * np.array(x[1])
+    r2_k = r2_score(k_values, k_pred)
+    print(f"r2_k = {r2_k} ")
+
+    b_pred = b_params[0] + b_params[1] * np.array(x[0]) + b_params[2] * np.array(x[1])
+    r2_b = r2_score(b_values, b_pred)
+    print(f"r2_b = {r2_b} ")
+
+    c_pred = c_params[0] + c_params[1] * np.array(x[0]) + c_params[2] * np.array(x[1])
+    r2_c = r2_score(c_values, c_pred)
+    print(f"r2_c = {r2_c} ")
+
+    return k_params, b_params, c_params, r2_k, r2_b, r2_c
 
 def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base_dir):
     def linear_model(x, m, c):
         return m * x + c
+
+    def multi_var_model(x, b0, b1, b2):
+        return b0 + b1 * x[0] + b2 * x[1]
 
     all_r2_scores = []
     all_delta_Es = []
@@ -293,16 +320,16 @@ def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base
     for data_set in data_sets:
         initial_png_file, adjusted_png_files, initial_luminance = data_set
         adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
+        sample_luminance_values = adaptator.generate_sample_luminance_values()
         
         # Calculate k, b, and c using the fitted relationships
         log_luminance = np.log(initial_luminance)
-        k = linear_model(log_luminance, *k_params)
-        b = linear_model(log_luminance, *b_params)
-        c = linear_model(log_luminance, *c_params)
+        k_values = k_params[0] + k_params[1] * log_luminance + k_params[2] * np.log(sample_luminance_values)
+        b_values = b_params[0] + b_params[1] * log_luminance + b_params[2] * np.log(sample_luminance_values)
+        c_values = c_params[0] + c_params[1] * log_luminance + c_params[2] * np.log(sample_luminance_values)
         
         # Save adjusted images using best fit parameters
-        output_dir = os.path.join(output_base_dir, 'adjusted_with_generalized_model', os.path.basename(initial_png_file).split('.')[0])
-        sample_luminance_values = adaptator.generate_sample_luminance_values()
+        output_dir = os.path.join(output_base_dir, 'adjusted_with_generalized_model', os.path.basename(initial_png_file).split('.')[0])        
 
         r2_scores = []
         delta_Es = []
@@ -312,7 +339,7 @@ def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base
             X_Ave = adaptator.X_Ave_values[i]
 
             # Calculate adjusted luminance
-            Y_pred = adaptator.apply_brightness_adjustment(adaptator.X, X_Ave, k, b, c)
+            Y_pred = adaptator.apply_brightness_adjustment(adaptator.X, X_Ave, k_values[i], b_values[i], c_values[i])
             
             # Calculate R² and ΔE
             r2 = r2_score(Y.ravel(), Y_pred.ravel())
@@ -323,7 +350,7 @@ def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base
         all_r2_scores.append(r2_scores)
         all_delta_Es.append(delta_Es)
 
-        adaptator.save_comparison_images(output_dir, k, b, c, sample_luminance_values, r2_scores, delta_Es)
+        adaptator.save_comparison_images(output_dir, k_values, b_values, c_values, sample_luminance_values, r2_scores, delta_Es)
 
     return all_r2_scores, all_delta_Es
 
@@ -346,7 +373,7 @@ def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_param
         plt.title('ΔE for Each Adjusted Image')
 
     # Add best parameters and average R² to the plot
-    plt.figtext(0.5, 0.01, f'Fitted parameters relationships: k = {k_params[0]:.2f}*log(X_Ave) + {k_params[1]:.2f}, b = {b_params[0]:.2f}*log(X_Ave) + {b_params[1]:.2f}, c = {c_params[0]:.2f}*log(X_Ave) + {c_params[1]:.2f} | Best Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
+    # plt.figtext(0.5, 0.01, f'Fitted parameters relationships: k = {k_params[0]:.2f}*log(X_Ave) + {k_params[1]:.2f}, b = {b_params[0]:.2f}*log(X_Ave) + {b_params[1]:.2f}, c = {c_params[0]:.2f}*log(X_Ave) + {c_params[1]:.2f} | Best Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
     
     plt.tight_layout()
     plt.savefig(output_file, dpi=300)
@@ -496,10 +523,10 @@ data_sets = [
 ]
 
 # Fit on all data sets separately to get individual k, b, and c values and save comparison images
-all_params, luminance_values = fit_on_all_data_sets(data_sets, "gamma", output_base_dir)
+all_params, luminance_values, sample_luminance_values = fit_on_all_data_sets(data_sets, "gamma", output_base_dir)
 
 # Fit relationships of k, b, and c with log(initial_luminance)
-k_params, b_params, c_params = fit_relationships(all_params, luminance_values)
+k_params, b_params, c_params, _, _, _ = fit_relationships(all_params, luminance_values, sample_luminance_values)
 
 # Apply the generalized model to all data and save comparison images
 all_r2_scores, all_delta_Es = apply_generalized_model(data_sets, k_params, b_params, c_params, output_base_dir)
@@ -509,5 +536,5 @@ output_file = os.path.join(output_base_dir, 'r2_and_delta_e_all_data.png')
 visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_params, b_params, c_params, np.mean([item for sublist in all_r2_scores for item in sublist]))
 
 # Visualize and save the relationship between parameters and log luminance
-output_file = os.path.join(output_base_dir, 'param_vs_luminance.png')
-visualize_params(all_params, luminance_values, output_file)
+# output_file = os.path.join(output_base_dir, 'param_vs_luminance.png')
+# visualize_params(all_params, luminance_values, output_file)
