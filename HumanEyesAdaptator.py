@@ -13,20 +13,34 @@ import matplotlib.pyplot as plt
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class HumanEyesAdaptator:
-    def __init__(self, initial_png_file, adjusted_png_files, initial_luminance, fit_func):
+    def __init__(self, initial_png_file, adjusted_png_files, initial_luminance, fit_func, luminance_file=None):
         self.X = self.extract_luminance_from_png(initial_png_file)
         self.Y_files = adjusted_png_files
         self.X_Max = self.X.max()
         self.initial_luminance = initial_luminance 
         self.luminance_generator = LuminanceGenerator(self.initial_luminance)
-        self.X_Ave_values = self.generate_sample_luminance_values()
         self.fit_func = fit_func
+
+        if luminance_file:
+            self.X_Ave_values = self.read_luminance_from_file(luminance_file)
+        else:
+            self.X_Ave_values = self.generate_sample_luminance_values()
 
     def extract_luminance_from_png(self, png_file):
         image = RawImage()  # txt_file is not needed here
         image.loadRGB(png_file)
         image.convert_rgb_to_lab_luminance()
         return image.luminance
+
+    def read_luminance_from_file(self, file_path):
+        try:
+            with open(file_path, 'r') as file:
+                luminance_values = [float(line.split()[0]) for line in file.readlines()]
+            logging.info(f"Luminance values read successfully from {file_path}")
+            return luminance_values
+        except Exception as e:
+            logging.error(f"Error reading luminance values from file {file_path}: {e}")
+            return []
 
     def apply_brightness_adjustment(self, df, X_Ave, k, b, c, epsilon=1e-10, max_val=1e3):
         try:
@@ -84,9 +98,9 @@ class HumanEyesAdaptator:
             Y = self.extract_luminance_from_png(y_file)
             X_Ave = self.X_Ave_values[i]
             
-            # TODO: REPLACE Provide initial guesses and bounds for parameters
-            initial_guesses = [-1, 0.0, 1.0]
-            bounds = ([-5, -10, 0.5], [20, 10, 10])
+            # Provide initial guesses and bounds for parameters
+            initial_guesses = [1, 0.5, 0.5]
+            bounds = ([-5, -5, 0.1], [5, 5, 5])
             
             try:
                 params, _ = curve_fit(
@@ -110,9 +124,6 @@ class HumanEyesAdaptator:
                 print(f"Fit did not converge for file {y_file}: {e}")
                 continue
             
-        # k_avg = np.mean(k_values)
-        # b_avg = np.mean(b_values)
-        # c_avg = np.mean(c_values)
         r2_avg = np.mean(r2_scores)
 
         print(f"Fitted parameters: k = {np.mean(k_values)}, b = {np.mean(b_values)}, c = {np.mean(c_values)}")
@@ -221,17 +232,15 @@ class HumanEyesAdaptator:
 def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
     all_params = []
     luminance_values = []
-    sample_luminance_values = []
 
     for data_set in data_sets:
-        initial_png_file, adjusted_png_files, initial_luminance = data_set
-        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, fit_func)
+        initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
+        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, fit_func, luminance_file)
 
         # Fit gamma
         k_values, b_values, c_values, r2_avg, r2_scores, delta_Es = adaptator.fit()
         all_params.append((k_values, b_values, c_values))
         luminance_values.append(np.log(initial_luminance))  # Use log(initial_luminance) for fitting
-        sample_luminance_values.append(np.log(adaptator.generate_sample_luminance_values()))
 
         # Save comparison images using fitted k, b, and c
         output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
@@ -240,47 +249,42 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
         # Visualize R² and ΔE curve for each fit
         adaptator.visualize_fit(k_values, b_values, c_values, r2_scores, delta_Es, os.path.join(output_dir, 'r2_and_delta_e_curve.png'), r2_avg)
 
-    return all_params, luminance_values, sample_luminance_values
+    return all_params, luminance_values
 
-# def visualize_params(all_params, initial_luminance, output_file):
-#     plt.figure(figsize=(10, 6))
+def visualize_params(all_params, initial_luminance, output_file):
+    plt.figure(figsize=(10, 6))
 
-#     k = [k for k, _, _ in all_params]
-#     b = [b for _, b, _ in all_params]
-#     c = [c for _, _, c in all_params]
+    k = [k for k, _, _ in all_params]
+    b = [b for _, b, _ in all_params]
+    c = [c for _, _, c in all_params]
 
-#     plt.subplot(1, 3, 1)
-#     plt.scatter(initial_luminance, k)
-#     plt.xlabel('log_initial_luminance')
-#     plt.ylabel('k')
-#     plt.title('Relationship between k and log initial luminance')
+    plt.subplot(1, 3, 1)
+    plt.scatter(initial_luminance, k)
+    plt.xlabel('log_initial_luminance')
+    plt.ylabel('k')
+    plt.title('Relationship between k and log initial luminance')
 
-#     plt.subplot(1, 3, 2)
-#     plt.scatter(initial_luminance, b)
-#     plt.xlabel('log_initial_luminance')
-#     plt.ylabel('b')
-#     plt.title('Relationship between b and log initial luminance')
+    plt.subplot(1, 3, 2)
+    plt.scatter(initial_luminance, b)
+    plt.xlabel('log_initial_luminance')
+    plt.ylabel('b')
+    plt.title('Relationship between b and log initial luminance')
 
-#     plt.subplot(1, 3, 3)
-#     plt.scatter(initial_luminance, c)
-#     plt.xlabel('log_initial_luminance')
-#     plt.ylabel('c')
-#     plt.title('Relationship between c and log initial luminance')
+    plt.subplot(1, 3, 3)
+    plt.scatter(initial_luminance, c)
+    plt.xlabel('log_initial_luminance')
+    plt.ylabel('c')
+    plt.title('Relationship between c and log initial luminance')
     
-#     plt.tight_layout()
-#     plt.savefig(output_file, dpi=300)
-#     plt.close()
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=300)
+    plt.close()
 
-
-def fit_relationships(all_params, luminance_values, sample_luminance_values):
+def fit_relationships(all_params, luminance_values):
     k_values, b_values, c_values = zip(*all_params)
     k_values, b_values, c_values = np.array(k_values).ravel(), np.array(b_values).ravel(), np.array(c_values).ravel()
 
     log_luminance = [item for l in luminance_values for item in [l]*10]
-
-    log_X_ave = list(np.array(sample_luminance_values).ravel())
-
-    x = [log_luminance, log_X_ave]
 
     # Fit linear models for k, b, and c with respect to log(initial_luminance)
     def linear_model(x, m, c):
@@ -289,23 +293,11 @@ def fit_relationships(all_params, luminance_values, sample_luminance_values):
     def multi_var_model(x, b0, b1, b2):
         return b0 + b1 * x[0] + b2 * x[1]
 
-    k_params, _ = curve_fit(multi_var_model, x, k_values)
-    b_params, _ = curve_fit(multi_var_model, x, b_values)
-    c_params, _ = curve_fit(multi_var_model, x, c_values)
+    k_params, _ = curve_fit(multi_var_model, [log_luminance], k_values)
+    b_params, _ = curve_fit(multi_var_model, [log_luminance], b_values)
+    c_params, _ = curve_fit(multi_var_model, [log_luminance], c_values)
 
-    k_pred = k_params[0] + k_params[1] * np.array(x[0]) + k_params[2] * np.array(x[1])
-    r2_k = r2_score(k_values, k_pred)
-    print(f"r2_k = {r2_k} ")
-
-    b_pred = b_params[0] + b_params[1] * np.array(x[0]) + b_params[2] * np.array(x[1])
-    r2_b = r2_score(b_values, b_pred)
-    print(f"r2_b = {r2_b} ")
-
-    c_pred = c_params[0] + c_params[1] * np.array(x[0]) + c_params[2] * np.array(x[1])
-    r2_c = r2_score(c_values, c_pred)
-    print(f"r2_c = {r2_c} ")
-
-    return k_params, b_params, c_params, r2_k, r2_b, r2_c
+    return k_params, b_params, c_params
 
 def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base_dir):
     def linear_model(x, m, c):
@@ -318,18 +310,17 @@ def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base
     all_delta_Es = []
 
     for data_set in data_sets:
-        initial_png_file, adjusted_png_files, initial_luminance = data_set
-        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma")
-        sample_luminance_values = adaptator.generate_sample_luminance_values()
+        initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
+        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma", luminance_file)
         
         # Calculate k, b, and c using the fitted relationships
         log_luminance = np.log(initial_luminance)
-        k_values = k_params[0] + k_params[1] * log_luminance + k_params[2] * np.log(sample_luminance_values)
-        b_values = b_params[0] + b_params[1] * log_luminance + b_params[2] * np.log(sample_luminance_values)
-        c_values = c_params[0] + c_params[1] * log_luminance + c_params[2] * np.log(sample_luminance_values)
+        k_values = k_params[0] + k_params[1] * log_luminance
+        b_values = b_params[0] + b_params[1] * log_luminance
+        c_values = c_params[0] + c_params[1] * log_luminance
         
         # Save adjusted images using best fit parameters
-        output_dir = os.path.join(output_base_dir, 'adjusted_with_generalized_model', os.path.basename(initial_png_file).split('.')[0])        
+        output_dir = os.path.join(output_base_dir, 'adjusted_with_generalized_model', os.path.basename(initial_png_file).split('.')[0])
 
         r2_scores = []
         delta_Es = []
@@ -350,7 +341,7 @@ def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base
         all_r2_scores.append(r2_scores)
         all_delta_Es.append(delta_Es)
 
-        adaptator.save_comparison_images(output_dir, k_values, b_values, c_values, sample_luminance_values, r2_scores, delta_Es)
+        adaptator.save_comparison_images(output_dir, k_values, b_values, c_values, adaptator.X_Ave_values, r2_scores, delta_Es)
 
     return all_r2_scores, all_delta_Es
 
@@ -373,7 +364,7 @@ def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_param
         plt.title('ΔE for Each Adjusted Image')
 
     # Add best parameters and average R² to the plot
-    # plt.figtext(0.5, 0.01, f'Fitted parameters relationships: k = {k_params[0]:.2f}*log(X_Ave) + {k_params[1]:.2f}, b = {b_params[0]:.2f}*log(X_Ave) + {b_params[1]:.2f}, c = {c_params[0]:.2f}*log(X_Ave) + {c_params[1]:.2f} | Best Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
+    plt.figtext(0.5, 0.01, f'Fitted parameters relationships: k = {k_params[0]:.2f}*log(X_Ave) + {k_params[1]:.2f}, b = {b_params[0]:.2f}*log(X_Ave) + {b_params[1]:.2f}, c = {c_params[0]:.2f}*log(X_Ave) + {c_params[1]:.2f} | Best Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
     
     plt.tight_layout()
     plt.savefig(output_file, dpi=300)
@@ -396,54 +387,68 @@ data_sets = [
          os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_007.png'),
          os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_008.png'),
          os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_009.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0010.png')
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0010.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0011.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0012.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0013.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0014.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0015.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0016.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0017.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0018.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0019.png'),
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0020.png')
      ],
-     6809.47),
+     6809.47,
+     os.path.join(current_path, 'data/VW216/sample_luminance.txt')),
     
-    (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
-     [
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_001.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_002.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_003.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_004.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_005.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_006.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_007.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_008.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_009.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_0010.png')
-     ],
-     2654.74),
+    # (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_001.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_002.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_003.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_004.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_005.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_006.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_007.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_008.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_009.png'),
+    #      os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_0010.png')
+    #  ],
+    #  2654.74,
+    #  os.path.join(current_path, 'data/VW310/luminance_values.txt')),
     
-    (os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
-     [
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_001.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_002.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_003.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_004.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_005.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_006.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_007.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_008.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_009.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_0010.png')
-     ],
-     1744.43),
+    # (os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_001.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_002.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_003.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_004.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_005.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_006.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_007.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_008.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_009.png'),
+    #      os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_0010.png')
+    #  ],
+    #  1744.43,
+    #  os.path.join(current_path, 'data/VW310-PL/luminance_values.txt')),
     
-    (os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
-     [
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_001.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_002.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_003.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_004.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_005.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_006.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_007.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_008.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_009.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_0010.png')
-     ],
-     2124.45),
+    # (os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_001.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_002.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_003.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_004.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_005.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_006.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_007.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_008.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_009.png'),
+    #      os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_0010.png')
+    #  ],
+    #  2124.45,
+    #  os.path.join(current_path, 'data/VW316/luminance_values.txt')),
     
     (os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_25.1441.png'),
      [
@@ -456,24 +461,36 @@ data_sets = [
          os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_007.png'),
          os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_008.png'),
          os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_009.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0010.png')
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0010.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0011.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0012.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0013.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0014.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0015.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0016.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0017.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0018.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0019.png'),
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0020.png')
      ],
-     25.1441),
+     25.1441,
+     os.path.join(current_path, 'data/VW316-TLB/sample_luminance.txt')),
     
-    (os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
-     [
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_001.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_002.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_003.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_004.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_005.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_006.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_007.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_008.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_009.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_0010.png')
-     ],
-     2381.67),
+    # (os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_001.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_002.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_003.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_004.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_005.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_006.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_007.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_008.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_009.png'),
+    #      os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_0010.png')
+    #  ],
+    #  2381.67,
+    #  os.path.join(current_path, 'data/VW323/luminance_values.txt')),
     
     (os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
      [
@@ -486,55 +503,68 @@ data_sets = [
          os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_007.png'),
          os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_008.png'),
          os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_009.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0010.png')
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0010.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0011.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0012.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0013.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0014.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0015.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0016.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0017.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0018.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0019.png'),
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0020.png')
      ],
-     49.3145),
+     49.3145,
+     os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt')),
     
-    (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
-     [
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_001.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_002.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_003.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_004.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_005.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_006.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_007.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_008.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_009.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_0010.png')
-     ],
-     9001.23),
+    # (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_001.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_002.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_003.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_004.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_005.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_006.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_007.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_008.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_009.png'),
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_0010.png')
+    #  ],
+    #  9001.23,
+    #  os.path.join(current_path, 'data/VW326/luminance_values.txt')),
     
-    (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
-     [
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_001.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_002.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_003.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_004.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_005.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_006.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_007.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_008.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_009.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_0010.png')
-     ],
-     15241.2),
+    # (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_001.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_002.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_003.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_004.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_005.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_006.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_007.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_008.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_009.png'),
+    #      os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_0010.png')
+    #  ],
+    #  15241.2,
+    #  os.path.join(current_path, 'data/VW331/luminance_values.txt')),
     # Add more data sets here
 ]
 
 # Fit on all data sets separately to get individual k, b, and c values and save comparison images
-all_params, luminance_values, sample_luminance_values = fit_on_all_data_sets(data_sets, "gamma", output_base_dir)
+all_params, luminance_values = fit_on_all_data_sets(data_sets, "gamma", output_base_dir)
 
 # Fit relationships of k, b, and c with log(initial_luminance)
-k_params, b_params, c_params, _, _, _ = fit_relationships(all_params, luminance_values, sample_luminance_values)
+# k_params, b_params, c_params = fit_relationships(all_params, luminance_values)
 
 # Apply the generalized model to all data and save comparison images
-all_r2_scores, all_delta_Es = apply_generalized_model(data_sets, k_params, b_params, c_params, output_base_dir)
+# all_r2_scores, all_delta_Es = apply_generalized_model(data_sets, k_params, b_params, c_params, output_base_dir)
 
 # Visualize and save the R² and ΔE curve diagrams for all data
-output_file = os.path.join(output_base_dir, 'r2_and_delta_e_all_data.png')
-visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_params, b_params, c_params, np.mean([item for sublist in all_r2_scores for item in sublist]))
+# output_file = os.path.join(output_base_dir, 'r2_and_delta_e_all_data.png')
+# visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_params, b_params, c_params, np.mean([item for sublist in all_r2_scores for item in sublist]))
 
 # Visualize and save the relationship between parameters and log luminance
-# output_file = os.path.join(output_base_dir, 'param_vs_luminance.png')
-# visualize_params(all_params, luminance_values, output_file)
+output_file = os.path.join(output_base_dir, 'param_vs_luminance.png')
+visualize_params(all_params, luminance_values, output_file)
