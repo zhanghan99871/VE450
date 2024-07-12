@@ -287,8 +287,8 @@ def fit_relationships(all_params, luminance_values):
     log_luminance = [item for l in luminance_values for item in [l]*10]
 
     # Fit linear models for k, b, and c with respect to log(initial_luminance)
-    def linear_model(x, m, c):
-        return m * x + c
+    # def linear_model(x, m, c):
+    #     return m * x + c
 
     def multi_var_model(x, b0, b1, b2):
         return b0 + b1 * x[0] + b2 * x[1]
