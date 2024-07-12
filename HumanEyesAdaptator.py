@@ -550,13 +550,9 @@ data_sets_low_luminance = [
 all_params_high, luminance_values_high = fit_on_all_data_sets(data_sets_high_luminance, "gamma", output_base_dir)
 all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
 
-# Flatten all_params lists
-flattened_all_params_high = all_params_high
-flattened_all_params_low = all_params_low
-
 # Visualize and save the relationship between parameters and log luminance for both high and low luminance data sets
 output_file_high = os.path.join(output_base_dir, 'param_vs_luminance_high.png')
-visualize_params(flattened_all_params_high, luminance_values_high, output_file_high)
+visualize_params(all_params_high, luminance_values_high, output_file_high)
 
 output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
-visualize_params(flattened_all_params_low, luminance_values_low, output_file_low)
+visualize_params(all_params_low, luminance_values_low, output_file_low)
