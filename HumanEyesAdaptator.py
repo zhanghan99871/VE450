@@ -99,8 +99,8 @@ class HumanEyesAdaptator:
             X_Ave = self.X_Ave_values[i]
             
             # Provide initial guesses and bounds for parameters
-            initial_guesses = [1, 0.5, 0.5]
-            bounds = ([-5, -5, 0.1], [5, 5, 5])
+            initial_guesses = [1, 1, 0.5]
+            bounds = ([-10, -10, 0.1], [10, 10, 5])
             
             try:
                 params, _ = curve_fit(
@@ -256,24 +256,36 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
 def visualize_params(all_params, initial_luminance, output_file):
     plt.figure(figsize=(10, 6))
 
-    k = [param[0] for param in all_params]
-    b = [param[1] for param in all_params]
-    c = [param[2] for param in all_params]
+    # Compute mean values for each unique luminance
+    unique_luminance = np.unique(initial_luminance)
+    mean_k = []
+    mean_b = []
+    mean_c = []
+
+    for lum in unique_luminance:
+        indices = [i for i, x in enumerate(initial_luminance) if x == lum]
+        k_values = [all_params[i][0] for i in indices]
+        b_values = [all_params[i][1] for i in indices]
+        c_values = [all_params[i][2] for i in indices]
+
+        mean_k.append(np.mean(k_values))
+        mean_b.append(np.mean(b_values))
+        mean_c.append(np.mean(c_values))
 
     plt.subplot(1, 3, 1)
-    plt.scatter(initial_luminance, k)
+    plt.scatter(unique_luminance, mean_k)
     plt.xlabel('log_initial_luminance')
     plt.ylabel('k')
     plt.title('Relationship between k and log initial luminance')
 
     plt.subplot(1, 3, 2)
-    plt.scatter(initial_luminance, b)
+    plt.scatter(unique_luminance, mean_b)
     plt.xlabel('log_initial_luminance')
     plt.ylabel('b')
     plt.title('Relationship between b and log initial luminance')
 
     plt.subplot(1, 3, 3)
-    plt.scatter(initial_luminance, c)
+    plt.scatter(unique_luminance, mean_c)
     plt.xlabel('log_initial_luminance')
     plt.ylabel('c')
     plt.title('Relationship between c and log initial luminance')
