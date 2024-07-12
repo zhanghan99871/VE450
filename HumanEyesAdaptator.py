@@ -573,15 +573,15 @@ mean_b_low = np.mean([param[1] for param in all_params_low])
 mean_c_low = np.mean([param[2] for param in all_params_low])
 
 # Visualize and compare the predicted results using the average parameters
-def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fit_type='average'):
-    all_r2_scores = []
-    all_delta_Es = []
+def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fit_type='average', group_name=''):
+    all_mean_r2_scores = []
+    all_mean_delta_Es = []
 
     for data_set in data_sets:
         initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
         adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma", luminance_file)
         
-        output_dir = os.path.join(output_base_dir, 'predicted_vs_actual', os.path.basename(initial_png_file).split('.')[0])
+        output_dir = os.path.join(output_base_dir, f'predicted_vs_actual_{group_name}', os.path.basename(initial_png_file).split('.')[0])
 
         r2_scores = []
         delta_Es = []
@@ -608,40 +608,38 @@ def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fi
             r2_scores.append(r2)
             delta_Es.append(delta_E)
 
-        all_r2_scores.append(r2_scores)
-        all_delta_Es.append(delta_Es)
+        all_mean_r2_scores.append(np.mean(r2_scores))
+        all_mean_delta_Es.append(np.mean(delta_Es))
 
         adaptator.save_comparison_images(output_dir, [k_value]*len(adjusted_png_files), [b_value]*len(adjusted_png_files), [c_value]*len(adjusted_png_files), adaptator.X_Ave_values, r2_scores, delta_Es)
 
-    visualize_model_performance(all_r2_scores, all_delta_Es, output_base_dir)
+    visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_base_dir, group_name)
 
-# Visualize model performance (R² and ΔE) curves for each model and luminance
-def visualize_model_performance(all_r2_scores, all_delta_Es, output_base_dir):
-    plt.figure(figsize=(12, 6))
-    
-    # Plot R² values
-    plt.subplot(1, 2, 1)
-    for i, r2_scores in enumerate(all_r2_scores):
-        plt.plot(range(1, len(r2_scores) + 1), r2_scores, marker='o', label=f'Model {i+1}')
-    plt.xlabel('Image Index')
-    plt.ylabel('R² Score')
-    plt.title('R² Scores for Each Adjusted Image')
-    plt.legend()
-    
-    # Plot ΔE values
-    plt.subplot(1, 2, 2)
-    for i, delta_Es in enumerate(all_delta_Es):
-        plt.plot(range(1, len(delta_Es) + 1), delta_Es, marker='o', label=f'Model {i+1}')
-    plt.xlabel('Image Index')
-    plt.ylabel('ΔE')
-    plt.title('ΔE for Each Adjusted Image')
-    plt.legend()
-    
+# Visualize model performance (mean R² and ΔE) for each dataset
+def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_base_dir, group_name):
+    # Plot mean R² values
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(1, len(all_mean_r2_scores) + 1), all_mean_r2_scores, marker='o')
+    plt.xlabel('Dataset Index')
+    plt.ylabel('Mean R² Score')
+    plt.title(f'Mean R² Scores for Each Adjusted Dataset ({group_name})')
     plt.tight_layout()
-    output_file = os.path.join(output_base_dir, 'model_performance.png')
-    plt.savefig(output_file, dpi=300)
+    output_file_r2 = os.path.join(output_base_dir, f'mean_r2_performance_{group_name}.png')
+    plt.savefig(output_file_r2, dpi=300)
     plt.close()
-    logging.info(f"Model performance figure saved to {output_file}")
+    logging.info(f"Mean R² performance figure saved to {output_file_r2}")
+
+    # Plot mean ΔE values
+    plt.figure(figsize=(8, 6))
+    plt.plot(range(1, len(all_mean_delta_Es) + 1), all_mean_delta_Es, marker='o')
+    plt.xlabel('Dataset Index')
+    plt.ylabel('Mean ΔE')
+    plt.title(f'Mean ΔE for Each Adjusted Dataset ({group_name})')
+    plt.tight_layout()
+    output_file_deltaE = os.path.join(output_base_dir, f'mean_deltaE_performance_{group_name}.png')
+    plt.savefig(output_file_deltaE, dpi=300)
+    plt.close()
+    logging.info(f"Mean ΔE performance figure saved to {output_file_deltaE}")
 
 # Calculate the average parameters for high luminance data sets
 mean_k_high = np.mean([param[0] for param in all_params_high])
@@ -652,5 +650,5 @@ mean_c_high = np.mean([param[2] for param in all_params_high])
 k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
 
 # Apply the generalized model and visualize predictions
-visualize_predictions(data_sets_high_luminance, mean_k_high, mean_b_high, mean_c_high, output_base_dir, fit_type='average')
-visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear')
+visualize_predictions(data_sets_high_luminance, mean_k_high, mean_b_high, mean_c_high, output_base_dir, fit_type='average', group_name='high_luminance')
+visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
