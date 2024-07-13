@@ -567,15 +567,6 @@ visualize_params(all_params_high, luminance_values_high, output_file_high)
 output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
 visualize_params(all_params_low, luminance_values_low, output_file_low)
 
-# Calculate the average parameters for both high and low luminance data sets
-mean_k_high = np.mean([param[0] for param in all_params_high])
-mean_b_high = np.mean([param[1] for param in all_params_high])
-mean_c_high = np.mean([param[2] for param in all_params_high])
-
-mean_k_low = np.mean([param[0] for param in all_params_low])
-mean_b_low = np.mean([param[1] for param in all_params_low])
-mean_c_low = np.mean([param[2] for param in all_params_low])
-
 def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fit_type='average', group_name=''):
     all_mean_r2_scores = []
     all_mean_delta_Es = []
