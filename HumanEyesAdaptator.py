@@ -382,121 +382,47 @@ def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_param
 # Paths and data sets
 current_path = os.path.abspath(os.path.dirname(__file__))
 output_base_dir = os.path.join(current_path, 'data/comparison_images')
-
 # Data sets with initial luminance >= 100
 data_sets_high_luminance = [
     (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
      [
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_001.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_002.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_003.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_004.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_005.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_006.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_007.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_008.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_009.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0010.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0011.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0012.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0013.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0014.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0015.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0016.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0017.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0018.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0019.png'),
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_0020.png')
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i+1)) for i in range(20)
      ],
      6809.47, os.path.join(current_path, 'data/VW216/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
      [
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_001.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_002.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_003.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_004.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_005.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_006.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_007.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_008.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_009.png'),
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_0010.png')
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
      2654.74, os.path.join(current_path, 'data/VW310/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
      [
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_001.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_002.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_003.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_004.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_005.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_006.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_007.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_008.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_009.png'),
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_0010.png')
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
      1744.43, os.path.join(current_path, 'data/VW310-PL/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
      [
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_001.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_002.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_003.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_004.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_005.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_006.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_007.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_008.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_009.png'),
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_0010.png')
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
      2124.45, os.path.join(current_path, 'data/VW316/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
      [
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_001.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_002.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_003.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_004.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_005.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_006.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_007.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_008.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_009.png'),
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_0010.png')
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
      2381.67, os.path.join(current_path, 'data/VW323/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
      [
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_001.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_002.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_003.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_004.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_005.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_006.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_007.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_008.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_009.png'),
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_0010.png')
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
      9001.23, os.path.join(current_path, 'data/VW326/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
      [
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_001.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_002.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_003.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_004.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_005.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_006.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_007.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_008.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_009.png'),
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_0010.png')
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
      15241.2, os.path.join(current_path, 'data/VW331/sample_luminance.txt'))
 ]
@@ -505,52 +431,14 @@ data_sets_high_luminance = [
 data_sets_low_luminance = [
     (os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_25.1441.png'),
      [
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_001.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_002.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_003.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_004.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_005.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_006.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_007.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_008.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_009.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0010.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0011.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0012.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0013.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0014.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0015.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0016.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0017.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0018.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0019.png'),
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_0020.png')
+         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_00{}.png'.format(i+1)) for i in range(20)
      ],
      25.1441,
      os.path.join(current_path, 'data/VW316-TLB/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
      [
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_001.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_002.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_003.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_004.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_005.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_006.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_007.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_008.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_009.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0010.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0011.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0012.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0013.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0014.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0015.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0016.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0017.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0018.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0019.png'),
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_0020.png')
+         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_00{}.png'.format(i+1)) for i in range(20)
      ],
      49.3145,
      os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt'))
