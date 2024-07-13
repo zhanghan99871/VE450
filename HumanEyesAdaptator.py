@@ -99,7 +99,7 @@ class HumanEyesAdaptator:
             X_Ave = self.X_Ave_values[i]
             
             # Provide initial guesses and bounds for parameters
-            initial_guesses = [1, 1, 0.5]
+            initial_guesses = [0.5, 0.5, 0.5]
             bounds = ([-10, -10, 0.1], [10, 10, 5])
             
             try:
@@ -576,7 +576,6 @@ mean_k_low = np.mean([param[0] for param in all_params_low])
 mean_b_low = np.mean([param[1] for param in all_params_low])
 mean_c_low = np.mean([param[2] for param in all_params_low])
 
-# Visualize and compare the predicted results using the average parameters
 def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fit_type='average', group_name=''):
     all_mean_r2_scores = []
     all_mean_delta_Es = []
@@ -585,7 +584,12 @@ def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fi
         initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
         adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma", luminance_file)
         
-        output_dir = os.path.join(output_base_dir, f'predicted_vs_actual_{group_name}', os.path.basename(initial_png_file).split('.')[0])
+        path_parts = initial_png_file.split(os.sep)
+        data_index = path_parts.index('data')
+        first_dir = path_parts[data_index + 1]
+        second_dir = path_parts[data_index + 2]
+
+        output_dir = os.path.join(output_base_dir, f'predicted_vs_actual_{group_name}', first_dir, second_dir)
 
         r2_scores = []
         delta_Es = []
