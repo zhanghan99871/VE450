@@ -136,6 +136,8 @@ class HumanEyesAdaptator:
         # Plot R² values
         plt.subplot(1, 2, 1)
         plt.plot(range(1, len(r2_scores) + 1), r2_scores, marker='o')
+        for i, txt in enumerate(r2_scores):
+            plt.annotate(f"{txt:.4f}", (i+1, r2_scores[i]))
         plt.xlabel('Image Index')
         plt.ylabel('R² Score')
         plt.title('R² Scores for Each Adjusted Image')
@@ -143,6 +145,8 @@ class HumanEyesAdaptator:
         # Plot ΔE values
         plt.subplot(1, 2, 2)
         plt.plot(range(1, len(delta_Es) + 1), delta_Es, marker='o')
+        for i, txt in enumerate(delta_Es):
+            plt.annotate(f"{txt:.4f}", (i+1, delta_Es[i]))
         plt.xlabel('Image Index')
         plt.ylabel('ΔE')
         plt.title('ΔE for Each Adjusted Image')
@@ -620,6 +624,8 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
     # Plot mean R² values
     plt.figure(figsize=(8, 6))
     plt.plot(range(1, len(all_mean_r2_scores) + 1), all_mean_r2_scores, marker='o')
+    for i, txt in enumerate(all_mean_r2_scores):
+        plt.annotate(f"{txt:.4f}", (i+1, all_mean_r2_scores[i]))
     plt.xlabel('Dataset Index')
     plt.ylabel('Mean R² Score')
     plt.title(f'Mean R² Scores for Each Adjusted Dataset ({group_name})')
@@ -632,6 +638,8 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
     # Plot mean ΔE values
     plt.figure(figsize=(8, 6))
     plt.plot(range(1, len(all_mean_delta_Es) + 1), all_mean_delta_Es, marker='o')
+    for i, txt in enumerate(all_mean_delta_Es):
+        plt.annotate(f"{txt:.4f}", (i+1, all_mean_delta_Es[i]))
     plt.xlabel('Dataset Index')
     plt.ylabel('Mean ΔE')
     plt.title(f'Mean ΔE for Each Adjusted Dataset ({group_name})')
