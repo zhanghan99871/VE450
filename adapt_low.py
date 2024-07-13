@@ -173,7 +173,7 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
         luminance_values.extend([initial_luminance] * len(L_values))  # Use initial_luminance for fitting
 
         # Save comparison images using fitted L, k, x0, and b
-        output_dir = os.path.join(output_base_dir, f'comparison_low_images_{os.path.basename(os.path.dirname(initial_png_file))}')
+        output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
         adaptator.save_comparison_images(output_dir, L_values, k_values, x0_values, b_values, r2_scores, delta_Es)
 
     return all_params, luminance_values
@@ -212,8 +212,6 @@ mean_b = np.mean([param[3] for param in all_params_low])
 generalized_output_base_dir = os.path.join(current_path, 'data/generalized_comparison_images')
 
 def apply_generalized_model(data_sets, L, k, x0, b, output_base_dir):
-    all_r2_scores = []
-    all_delta_Es = []
     for data_set in data_sets:
         initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
         adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "sigmoid", luminance_file)
@@ -234,16 +232,11 @@ def apply_generalized_model(data_sets, L, k, x0, b, output_base_dir):
             r2_scores.append(r2)
             delta_Es.append(delta_E)
 
-        all_r2_scores.extend(r2_scores)
-        all_delta_Es.extend(delta_Es)
-
         # Save comparison images using generalized L, k, x0, and b
-        output_dir = os.path.join(output_base_dir, f'comparison_low_images_{os.path.basename(os.path.dirname(initial_png_file))}')
+        output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
         adaptator.save_comparison_images(output_dir, L, k, x0, b, r2_scores, delta_Es, generalized=True)
 
-    return all_r2_scores, all_delta_Es
-
-all_r2_scores, all_delta_Es = apply_generalized_model(data_sets_low_luminance, mean_L, mean_k, mean_x0, mean_b, generalized_output_base_dir)
+apply_generalized_model(data_sets_low_luminance, mean_L, mean_k, mean_x0, mean_b, generalized_output_base_dir)
 
 def visualize_params(all_params, initial_luminance, output_file):
     plt.figure(figsize=(10, 6))
@@ -297,80 +290,3 @@ def visualize_params(all_params, initial_luminance, output_file):
 
 output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
 visualize_params(all_params_low, luminance_values_low, output_file_low)
-
-def visualize_r2_deltaE(all_r2_scores, all_delta_Es, output_base_dir):
-    plt.figure(figsize=(10, 6))
-
-    # Plot R² scores
-    plt.subplot(1, 2, 1)
-    plt.hist(all_r2_scores, bins=20, alpha=0.75)
-    plt.xlabel('R² Score')
-    plt.ylabel('Frequency')
-    plt.title('Distribution of R² Scores for Generalized Model')
-
-    # Plot ΔE scores
-    plt.subplot(1, 2, 2)
-    plt.hist(all_delta_Es, bins=20, alpha=0.75)
-    plt.xlabel('ΔE')
-    plt.ylabel('Frequency')
-    plt.title('Distribution of ΔE Scores for Generalized Model')
-
-    plt.tight_layout()
-    output_file = os.path.join(output_base_dir, 'r2_deltaE_distribution.png')
-    plt.savefig(output_file, dpi=300)
-    plt.close()
-
-visualize_r2_deltaE(all_r2_scores, all_delta_Es, generalized_output_base_dir)
-
-def linear_model(x, m, c):
-    return m * x + c
-
-# Fit linear models for the parameters
-L_params, _ = curve_fit(linear_model, luminance_values_low, [param[0] for param in all_params_low])
-k_params, _ = curve_fit(linear_model, luminance_values_low, [param[1] for param in all_params_low])
-x0_params, _ = curve_fit(linear_model, luminance_values_low, [param[2] for param in all_params_low])
-b_params, _ = curve_fit(linear_model, luminance_values_low, [param[3] for param in all_params_low])
-
-def apply_linear_model(data_sets, L_params, k_params, x0_params, b_params, output_base_dir):
-    all_r2_scores = []
-    all_delta_Es = []
-
-    for data_set in data_sets:
-        initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
-        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "sigmoid", luminance_file)
-        
-        r2_scores = []
-        delta_Es = []
-
-        for i, y_file in enumerate(adjusted_png_files):
-            Y = adaptator.extract_luminance_from_png(y_file)
-            X_Ave = adaptator.X_Ave_values[i]
-
-            # Calculate parameters using linear model
-            L = linear_model(initial_luminance, *L_params)
-            k = linear_model(initial_luminance, *k_params)
-            x0 = linear_model(initial_luminance, *x0_params)
-            b = linear_model(initial_luminance, *b_params)
-
-            # Calculate adjusted luminance
-            Y_pred = adaptator.apply_brightness_adjustment(adaptator.X, L, k, x0, b)
-            
-            # Calculate R² and ΔE
-            r2 = r2_score(Y.ravel(), Y_pred.ravel())
-            delta_E = np.sqrt(mse(Y, Y_pred))
-            r2_scores.append(r2)
-            delta_Es.append(delta_E)
-
-        all_r2_scores.extend(r2_scores)
-        all_delta_Es.extend(delta_Es)
-
-        # Save comparison images using linear model parameters
-        output_dir = os.path.join(output_base_dir, f'comparison_low_images_{os.path.basename(os.path.dirname(initial_png_file))}')
-        adaptator.save_comparison_images(output_dir, L, k, x0, b, r2_scores, delta_Es, generalized=True)
-
-    return all_r2_scores, all_delta_Es
-
-all_linear_r2_scores, all_linear_delta_Es = apply_linear_model(data_sets_low_luminance, L_params, k_params, x0_params, b_params, generalized_output_base_dir)
-
-# Visualize the R² and ΔE distributions for the linear model
-visualize_r2_deltaE(all_linear_r2_scores, all_linear_delta_Es, generalized_output_base_dir)
