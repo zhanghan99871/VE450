@@ -99,7 +99,7 @@ class HumanEyesAdaptator:
             X_Ave = self.X_Ave_values[i]
             
             # Provide initial guesses and bounds for parameters
-            initial_guesses = [0.5, 0.5, 0.5]
+            initial_guesses = [1, 1, 0.5]
             bounds = ([-10, -10, 0.1], [10, 10, 5])
             
             try:
@@ -623,7 +623,6 @@ def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fi
 
     visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_base_dir, group_name)
 
-# Visualize model performance (mean R² and ΔE) for each dataset
 def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_base_dir, group_name):
     # Plot mean R² values
     plt.figure(figsize=(8, 6))
@@ -633,6 +632,21 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
     plt.xlabel('Dataset Index')
     plt.ylabel('Mean R² Score')
     plt.title(f'Mean R² Scores for Each Adjusted Dataset ({group_name})')
+    
+    # Annotate with k, b, c parameters and average R²
+    if group_name == 'high_luminance':
+        mean_k, mean_b, mean_c = mean_k_high, mean_b_high, mean_c_high
+        avg_r2 = np.mean(all_mean_r2_scores)
+        avg_deltaE = np.mean(all_mean_delta_Es)
+        plt.figtext(0.5, 0.01, f'Mean k: {mean_k:.2f}, Mean b: {mean_b:.2f}, Mean c: {mean_c:.2f} | Avg R²: {avg_r2:.2f} | Avg ΔE: {avg_deltaE:.2f}', ha='center', fontsize=10)
+    elif group_name == 'low_luminance':
+        k_slope, k_intercept = k_params_low
+        b_slope, b_intercept = b_params_low
+        c_slope, c_intercept = c_params_low
+        avg_r2 = np.mean(all_mean_r2_scores)
+        avg_deltaE = np.mean(all_mean_delta_Es)
+        plt.figtext(0.5, 0.01, f'k: {k_slope:.2f}*Luminance + {k_intercept:.2f}, b: {b_slope:.2f}*Luminance + {b_intercept:.2f}, c: {c_slope:.2f}*Luminance + {c_intercept:.2f} | Avg R²: {avg_r2:.2f} | Avg ΔE: {avg_deltaE:.2f}', ha='center', fontsize=10)
+    
     plt.tight_layout()
     output_file_r2 = os.path.join(output_base_dir, f'mean_r2_performance_{group_name}.png')
     plt.savefig(output_file_r2, dpi=300)
@@ -647,6 +661,21 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
     plt.xlabel('Dataset Index')
     plt.ylabel('Mean ΔE')
     plt.title(f'Mean ΔE for Each Adjusted Dataset ({group_name})')
+    
+    # Annotate with k, b, c parameters and average ΔE
+    if group_name == 'high_luminance':
+        mean_k, mean_b, mean_c = mean_k_high, mean_b_high, mean_c_high
+        avg_r2 = np.mean(all_mean_r2_scores)
+        avg_deltaE = np.mean(all_mean_delta_Es)
+        plt.figtext(0.5, 0.01, f'Mean k: {mean_k:.2f}, Mean b: {mean_b:.2f}, Mean c: {mean_c:.2f} | Avg R²: {avg_r2:.2f} | Avg ΔE: {avg_deltaE:.2f}', ha='center', fontsize=10)
+    elif group_name == 'low_luminance':
+        k_slope, k_intercept = k_params_low
+        b_slope, b_intercept = b_params_low
+        c_slope, c_intercept = c_params_low
+        avg_r2 = np.mean(all_mean_r2_scores)
+        avg_deltaE = np.mean(all_mean_delta_Es)
+        plt.figtext(0.5, 0.01, f'k: {k_slope:.2f}*Luminance + {k_intercept:.2f}, b: {b_slope:.2f}*Luminance + {b_intercept:.2f}, c: {c_slope:.2f}*Luminance + {c_intercept:.2f} | Avg R²: {avg_r2:.2f} | Avg ΔE: {avg_deltaE:.2f}', ha='center', fontsize=10)
+    
     plt.tight_layout()
     output_file_deltaE = os.path.join(output_base_dir, f'mean_deltaE_performance_{group_name}.png')
     plt.savefig(output_file_deltaE, dpi=300)
