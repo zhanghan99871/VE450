@@ -15,6 +15,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def sigmoid(x, L, k, x0, b):
     return L / (1 + np.exp(-k * (x - x0))) + b
 
+def sigmoid_modified(x, L, k, x0, k0):
+    return L / (1 + np.exp(-k * (x - x0))) + k0 * x
+
 class HumanEyesAdaptator:
     def __init__(self, initial_png_file, adjusted_png_files, initial_luminance, fit_func, luminance_file=None):
         self.X = self.extract_luminance_from_png(initial_png_file)
@@ -66,9 +69,13 @@ class HumanEyesAdaptator:
             Y = self.extract_luminance_from_png(y_file)
             X_Ave = self.X_Ave_values[i]
 
-            # Provide initial guesses and bounds for parameters
+            # Provide initial guesses and bounds for sigmoid parameters
             initial_guesses = [100, 1, np.median(self.X), 0.5]
             bounds = ([50, 0.1, 0, 0], [200, 10, 255, 100])
+
+            # # Provide initial guesses and bounds for sigmoid parameters
+            # initial_guesses = [100, 1, np.median(self.X), 0.01]
+            # bounds = ([50, 0.1, 0, 0], [200, 10, 255, 1])
             
             try:
                 params, _ = curve_fit(sigmoid, self.X.ravel(), Y.ravel(), p0=initial_guesses, bounds=bounds)
@@ -190,13 +197,59 @@ data_sets_low_luminance = [
      ],
      25.1441,
      os.path.join(current_path, 'data/VW316-TLB/sample_luminance.txt')),
-    
+
     (os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
      [
          os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_00{}.png'.format(i+1)) for i in range(20)
      ],
      49.3145,
-     os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt'))
+     os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt')),
+
+    (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
+     [
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i+1)) for i in range(20)
+     ],
+     6809.47, os.path.join(current_path, 'data/VW216/sample_luminance.txt')),
+
+    (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
+     [
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_00{}.png'.format(i + 1)) for i in range(10)
+     ],
+     2654.74, os.path.join(current_path, 'data/VW310/sample_luminance.txt')),
+
+    (os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
+     [
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_00{}.png'.format(i + 1)) for i in
+         range(10)
+     ],
+     1744.43, os.path.join(current_path, 'data/VW310-PL/sample_luminance.txt')),
+
+    (os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
+     [
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_00{}.png'.format(i + 1)) for i in range(10)
+     ],
+     2124.45, os.path.join(current_path, 'data/VW316/sample_luminance.txt')),
+
+    (os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
+     [
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_00{}.png'.format(i + 1)) for i in range(10)
+     ],
+     2381.67, os.path.join(current_path, 'data/VW323/sample_luminance.txt')),
+
+    (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
+     [
+         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_00{}.png'.format(i + 1)) for i in
+         range(10)
+     ],
+     9001.23, os.path.join(current_path, 'data/VW326/sample_luminance.txt')),
+
+    (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
+     [
+         os.path.join(current_path,
+                      'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_00{}.png'.format(i + 1))
+         for i in range(10)
+     ],
+     15241.2, os.path.join(current_path, 'data/VW331/sample_luminance.txt'))
 ]
 
 # Fit on all data sets separately to get individual L, k, x0, and b values and save comparison images

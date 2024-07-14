@@ -42,28 +42,29 @@ class HumanEyesAdaptator:
             logging.error(f"Error reading luminance values from file {file_path}: {e}")
             return []
 
-    def apply_brightness_adjustment(self, df, X_Ave, k, b, c, epsilon=1e-10, max_val=1e3):
-        try:
-            df = df + epsilon  # Add epsilon to avoid log10(0)
-            X_Ave_adjusted = 1 + c * X_Ave
-            X_Ave_adjusted = np.clip(X_Ave_adjusted, epsilon, max_val)
-            
-            inner_term = df / self.X_Max
-            inner_term = np.clip(inner_term, epsilon, max_val)
-            
-            exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
-            exponent = np.clip(exponent, -max_val, max_val)
-            
-            with np.errstate(over='ignore'):  # Suppress overflow warnings
-                power_term = np.power(inner_term, exponent)
-                power_term = np.clip(power_term, -max_val, max_val)
-            
-            Y = 100 * np.log10(1 + 9 * power_term)
-            logging.info(f"Brightness adjustment applied successfully.")
-            return Y
-        except Exception as e:
-            logging.error(f"Error in apply_brightness_adjustment: {e}")
-            return np.zeros_like(df)  # Return a default value to prevent crashes
+    '''Do we need this function?'''
+    # def apply_brightness_adjustment(self, df, X_Ave, k, b, c, epsilon=1e-10, max_val=1e3):
+    #     try:
+    #         df = df + epsilon  # Add epsilon to avoid log10(0)
+    #         X_Ave_adjusted = 1 + c * X_Ave
+    #         X_Ave_adjusted = np.clip(X_Ave_adjusted, epsilon, max_val)
+    #
+    #         inner_term = df / self.X_Max
+    #         inner_term = np.clip(inner_term, epsilon, max_val)
+    #
+    #         exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
+    #         exponent = np.clip(exponent, -max_val, max_val)
+    #
+    #         with np.errstate(over='ignore'):  # Suppress overflow warnings
+    #             power_term = np.power(inner_term, exponent)
+    #             power_term = np.clip(power_term, -max_val, max_val)
+    #
+    #         Y = 100 * np.log10(1 + 9 * power_term)
+    #         logging.info(f"Brightness adjustment applied successfully.")
+    #         return Y
+    #     except Exception as e:
+    #         logging.error(f"Error in apply_brightness_adjustment: {e}")
+    #         return np.zeros_like(df)  # Return a default value to prevent crashes
 
     def gamma_function(self, X, k, b, c, X_Ave, epsilon=1e-10, max_val=1e3):
         X = X + epsilon  # Add epsilon to avoid log10(0)
@@ -185,8 +186,10 @@ class HumanEyesAdaptator:
                 logging.info(f"Original L channel min: {l.min()}, max: {l.max()}")
                 
                 # Apply brightness adjustment to the L channel
-                adjusted_luminance = self.apply_brightness_adjustment(l, luminance_value, k_values[i], b_values[i], c_values[i])
-                
+                adjusted_luminance = self.gamma_function(l, k_values[i], b_values[i],
+                                                                      c_values[i], luminance_value)
+
+
                 # Log the min and max values of adjusted luminance before normalization
                 logging.info(f"Adjusted luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
                 
@@ -339,8 +342,8 @@ def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base
             X_Ave = adaptator.X_Ave_values[i]
 
             # Calculate adjusted luminance
-            Y_pred = adaptator.apply_brightness_adjustment(adaptator.X, X_Ave, k_value, b_value, c_value)
-            
+            Y_pred = adaptator.gamma_function(adaptator.X, k_value, b_value, c_value, X_Ave)
+
             # Calculate R² and ΔE
             r2 = r2_score(Y.ravel(), Y_pred.ravel())
             delta_E = np.sqrt(mse(Y, Y_pred))
@@ -487,8 +490,8 @@ def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fi
                 c_value = mean_c
 
             # Calculate adjusted luminance using mean parameters
-            Y_pred = adaptator.apply_brightness_adjustment(adaptator.X, X_Ave, k_value, b_value, c_value)
-            
+            Y_pred = adaptator.gamma_function(adaptator.X, k_value, b_value, c_value, X_Ave)
+
             # Calculate R² and ΔE
             r2 = r2_score(Y.ravel(), Y_pred.ravel())
             delta_E = np.sqrt(mse(Y, Y_pred))
