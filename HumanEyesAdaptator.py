@@ -6,7 +6,6 @@ import cv2 as cv
 from skimage.metrics import mean_squared_error as mse
 import logging
 from RawImage import RawImage
-from generate_luminance_values import LuminanceGenerator
 import matplotlib.pyplot as plt
 
 # Set up logging
@@ -18,16 +17,11 @@ class HumanEyesAdaptator:
         self.Y_files = adjusted_png_files
         self.X_Max = self.X.max()
         self.initial_luminance = initial_luminance 
-        self.luminance_generator = LuminanceGenerator(self.initial_luminance)
         self.fit_func = fit_func
-
-        if luminance_file:
-            self.X_Ave_values = self.read_luminance_from_file(luminance_file)
-        else:
-            self.X_Ave_values = self.generate_sample_luminance_values()
+        self.X_Ave_values = self.read_luminance_from_file(luminance_file)
 
     def extract_luminance_from_png(self, png_file):
-        image = RawImage()  # txt_file is not needed here
+        image = RawImage()
         image.loadRGB(png_file)
         image.convert_rgb_to_lab_luminance()
         return image.luminance
@@ -41,30 +35,6 @@ class HumanEyesAdaptator:
         except Exception as e:
             logging.error(f"Error reading luminance values from file {file_path}: {e}")
             return []
-
-    '''Do we need this function?'''
-    # def apply_brightness_adjustment(self, df, X_Ave, k, b, c, epsilon=1e-10, max_val=1e3):
-    #     try:
-    #         df = df + epsilon  # Add epsilon to avoid log10(0)
-    #         X_Ave_adjusted = 1 + c * X_Ave
-    #         X_Ave_adjusted = np.clip(X_Ave_adjusted, epsilon, max_val)
-    #
-    #         inner_term = df / self.X_Max
-    #         inner_term = np.clip(inner_term, epsilon, max_val)
-    #
-    #         exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
-    #         exponent = np.clip(exponent, -max_val, max_val)
-    #
-    #         with np.errstate(over='ignore'):  # Suppress overflow warnings
-    #             power_term = np.power(inner_term, exponent)
-    #             power_term = np.clip(power_term, -max_val, max_val)
-    #
-    #         Y = 100 * np.log10(1 + 9 * power_term)
-    #         logging.info(f"Brightness adjustment applied successfully.")
-    #         return Y
-    #     except Exception as e:
-    #         logging.error(f"Error in apply_brightness_adjustment: {e}")
-    #         return np.zeros_like(df)  # Return a default value to prevent crashes
 
     def gamma_function(self, X, k, b, c, X_Ave, epsilon=1e-10, max_val=1e3):
         X = X + epsilon  # Add epsilon to avoid log10(0)
@@ -159,9 +129,6 @@ class HumanEyesAdaptator:
         plt.savefig(output_file, dpi=300)
         plt.close()
         logging.info(f"Figure saved to {output_file}")
-
-    def generate_sample_luminance_values(self):
-        return self.luminance_generator.generate_sample_luminance_values()
 
     def save_comparison_images(self, output_dir, k_values, b_values, c_values, sample_luminance_values, r2_scores, delta_Es):
         # Ensure the output directory exists
@@ -447,17 +414,6 @@ data_sets_low_luminance = [
      os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt'))
 ]
 
-# Fit on all data sets separately to get individual k, b, and c values and save comparison images
-all_params_high, luminance_values_high = fit_on_all_data_sets(data_sets_high_luminance, "gamma", output_base_dir)
-all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
-
-# Visualize and save the relationship between parameters and initial luminance for both high and low luminance data sets
-output_file_high = os.path.join(output_base_dir, 'param_vs_luminance_high.png')
-visualize_params(all_params_high, luminance_values_high, output_file_high)
-
-output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
-visualize_params(all_params_low, luminance_values_low, output_file_low)
-
 def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fit_type='average', group_name=''):
     all_mean_r2_scores = []
     all_mean_delta_Es = []
@@ -563,6 +519,17 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
     plt.savefig(output_file_deltaE, dpi=300)
     plt.close()
     logging.info(f"Mean ΔE performance figure saved to {output_file_deltaE}")
+
+# Fit on all data sets separately to get individual k, b, and c values and save comparison images
+all_params_high, luminance_values_high = fit_on_all_data_sets(data_sets_high_luminance, "gamma", output_base_dir)
+all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
+
+# Visualize and save the relationship between parameters and initial luminance for both high and low luminance data sets
+output_file_high = os.path.join(output_base_dir, 'param_vs_luminance_high.png')
+visualize_params(all_params_high, luminance_values_high, output_file_high)
+
+output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
+visualize_params(all_params_low, luminance_values_low, output_file_low)
 
 # Calculate the average parameters for high luminance data sets
 mean_k_high = np.mean([param[0] for param in all_params_high])
