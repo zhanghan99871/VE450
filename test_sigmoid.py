@@ -70,8 +70,8 @@ class HumanEyesAdaptator:
             X_Ave = self.X_Ave_values[i]
 
             # Provide initial guesses and bounds for parameters
-            initial_guesses = [1, 1, 1, 1]
-            bounds = ([0, 0, 0, 0], [255, 255, 255, 255])
+            initial_guesses = [150, 50, 20, 1]
+            bounds = ([100, 50, 10, 0], [255, 255, 255, 10])
 
             try:
                 params, _ = curve_fit(
@@ -175,7 +175,7 @@ class HumanEyesAdaptator:
                 comparison_img = np.hstack((original_img, adjusted_img))
 
                 # Add title with the luminance value, R² score, and ΔE
-                title = f"Sample Luminance: {luminance_value:.2f} cd/m^2, R^2: {r2_score_val:.2f}, DeltaE: {delta_E_val:.2f}"
+                title = f"Sample Luminance: X_AVE {luminance_value:.2f} , R^2: {r2_score_val:.2f}, DeltaE: {delta_E_val:.2f}"
                 font = cv.FONT_HERSHEY_SIMPLEX
                 font_scale = 1
                 thickness = 2
@@ -383,17 +383,5 @@ data_sets = [
 # Fit on all data sets
 all_params, luminance_values = fit_on_all_data_sets(data_sets, "sigmoid", output_base_dir)
 
-# Visualize and save the relationship between parameters and luminance
 output_file = os.path.join(output_base_dir, 'param_vs_luminance.png')
 visualize_params(all_params, luminance_values, output_file)
-
-# Fit linear models for a, b, c, and d with respect to luminance
-a_params, b_params, c_params, d_params = fit_relationships(all_params, luminance_values)
-
-# Apply the generalized model and visualize predictions
-output_base_dir_generalized = os.path.join(output_base_dir, 'generalized_model')
-all_r2_scores, all_delta_Es = apply_generalized_model(data_sets, a_params, b_params, c_params, d_params, output_base_dir_generalized)
-
-# Visualize the results of the best fit generalized model
-output_file_generalized = os.path.join(output_base_dir_generalized, 'best_fit_results.png')
-visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file_generalized, a_params, b_params, c_params, d_params, np.mean([np.mean(r2) for r2 in all_r2_scores]))
