@@ -12,13 +12,12 @@ import matplotlib.pyplot as plt
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class HumanEyesAdaptator:
-    def __init__(self, initial_png_file, adjusted_png_files, initial_luminance, fit_func, luminance_file=None):
+    def __init__(self, initial_png_file, adjusted_png_files, fit_func):
         self.X = self.extract_luminance_from_png(initial_png_file)
         self.Y_files = adjusted_png_files
         self.X_Max = self.X.max()
-        self.initial_luminance = initial_luminance 
         self.fit_func = fit_func
-        self.X_Ave_values = self.read_luminance_from_file(luminance_file)
+        self.X_Ave_values = self.calculate_X_Ave_values()
 
     def extract_luminance_from_png(self, png_file):
         image = RawImage()
@@ -26,15 +25,15 @@ class HumanEyesAdaptator:
         image.convert_rgb_to_lab_luminance()
         return image.luminance
 
-    def read_luminance_from_file(self, file_path):
-        try:
-            with open(file_path, 'r') as file:
-                luminance_values = [float(line.split()[0]) for line in file.readlines()]
-            logging.info(f"Luminance values read successfully from {file_path}")
-            return luminance_values
-        except Exception as e:
-            logging.error(f"Error reading luminance values from file {file_path}: {e}")
-            return []
+    def calculate_X_Ave_values(self):
+        X_Ave_values = []
+        for y_file in self.Y_files:
+            image = RawImage()
+            image.loadRGB(y_file)
+            image.convert_rgb_to_lab_luminance()
+            X_Ave_values.append(np.mean(image.luminance))
+        logging.info(f"Calculated X_Ave values for adjusted images: {X_Ave_values}")
+        return X_Ave_values
 
     def gamma_function(self, X, k, b, c, X_Ave, epsilon=1e-10, max_val=1e3):
         X = X + epsilon  # Add epsilon to avoid log10(0)
@@ -151,38 +150,30 @@ class HumanEyesAdaptator:
 
                 # Ensure that the original L channel is in the correct range
                 logging.info(f"Original L channel min: {l.min()}, max: {l.max()}")
-                
                 # Apply brightness adjustment to the L channel
-                adjusted_luminance = self.gamma_function(l, k_values[i], b_values[i],
-                                                                      c_values[i], luminance_value)
-
-
+                adjusted_luminance = self.gamma_function(l, k_values[i], b_values[i], c_values[i], luminance_value)
                 # Log the min and max values of adjusted luminance before normalization
                 logging.info(f"Adjusted luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
                 
-                # Normalize adjusted luminance to 0-255 range
+               # Normalize adjusted luminance to 0-255 range
                 min_val = adjusted_luminance.min()
                 max_val = adjusted_luminance.max()
                 if max_val - min_val == 0:
                     logging.error(f"Normalization error: max_val ({max_val}) - min_val ({min_val}) = 0")
                     continue
-                
                 # Check if min_val is non-zero and log a warning
                 if min_val != 0:
                     logging.warning(f"Adjusted luminance min is not zero: {min_val}")
-
                 adjusted_luminance = ((adjusted_luminance - min_val) / 
                                     (max_val - min_val) * 255).astype(np.uint8)
-                
                 # Log the min and max values of adjusted luminance after normalization
                 logging.info(f"Normalized luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
-                
-                # Ensure luminance values are correctly processed
+               # Ensure luminance values are correctly processed
                 adjusted_luminance = np.clip(adjusted_luminance, 0, 255)
-
+                # Ensure the adjusted luminance has the same shape as the original channels
+                adjusted_luminance = cv.resize(adjusted_luminance, (l.shape[1], l.shape[0]))
                 # Merge the adjusted L channel back with the original a and b channels
                 lab_adjusted = cv.merge([adjusted_luminance, a, b_ch])
-                
                 # Convert back to BGR color space
                 adjusted_img = cv.cvtColor(lab_adjusted, cv.COLOR_LAB2BGR)
                 
@@ -208,15 +199,15 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
     luminance_values = []
 
     for data_set in data_sets:
-        initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
+        initial_png_file, adjusted_png_files, initial_luminance = data_set[:3]
 
-        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, fit_func, luminance_file)
+        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, fit_func)
 
         # Fit gamma
         k_values, b_values, c_values, r2_avg, r2_scores, delta_Es = adaptator.fit()
         for k, b, c in zip(k_values, b_values, c_values):
             all_params.append((k, b, c))
-        luminance_values.extend([initial_luminance] * len(k_values))  # Use initial_luminance for fitting
+        luminance_values.extend(adaptator.X_Ave_values)  # Use X_Ave_values for fitting
 
         # Save comparison images using fitted k, b, and c
         output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
@@ -227,17 +218,17 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
 
     return all_params, luminance_values
 
-def visualize_params(all_params, initial_luminance, output_file):
+def visualize_params(all_params, luminance_values, output_file):
     plt.figure(figsize=(10, 6))
 
     # Compute mean values for each unique luminance
-    unique_luminance = np.unique(initial_luminance)
+    unique_luminance = np.unique(luminance_values)
     mean_k = []
     mean_b = []
     mean_c = []
 
     for lum in unique_luminance:
-        indices = [i for i, x in enumerate(initial_luminance) if x == lum]
+        indices = [i for i, x in enumerate(luminance_values) if x == lum]
         k_values = [all_params[i][0] for i in indices]
         b_values = [all_params[i][1] for i in indices]
         c_values = [all_params[i][2] for i in indices]
@@ -248,21 +239,21 @@ def visualize_params(all_params, initial_luminance, output_file):
 
     plt.subplot(1, 3, 1)
     plt.scatter(unique_luminance, mean_k)
-    plt.xlabel('initial_luminance')
+    plt.xlabel('Luminance (cd/m^2)')
     plt.ylabel('k')
-    plt.title('Relationship between k and initial luminance')
+    plt.title('Relationship between k and Luminance')
 
     plt.subplot(1, 3, 2)
     plt.scatter(unique_luminance, mean_b)
-    plt.xlabel('initial_luminance')
+    plt.xlabel('Luminance (cd/m^2)')
     plt.ylabel('b')
-    plt.title('Relationship between b and initial luminance')
+    plt.title('Relationship between b and Luminance')
 
     plt.subplot(1, 3, 3)
     plt.scatter(unique_luminance, mean_c)
-    plt.xlabel('initial_luminance')
+    plt.xlabel('Luminance (cd/m^2)')
     plt.ylabel('c')
-    plt.title('Relationship between c and initial luminance')
+    plt.title('Relationship between c and Luminance')
     
     plt.tight_layout()
     plt.savefig(output_file, dpi=300)
@@ -272,7 +263,7 @@ def fit_relationships(all_params, luminance_values):
     k_values, b_values, c_values = zip(*all_params)
     k_values, b_values, c_values = np.array(k_values).ravel(), np.array(b_values).ravel(), np.array(c_values).ravel()
 
-    # Fit linear models for k, b, and c with respect to initial_luminance
+    # Fit linear models for k, b, and c with respect to luminance
     def linear_model(x, m, c):
         return m * x + c
 
@@ -290,8 +281,8 @@ def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base
     all_delta_Es = []
 
     for data_set in data_sets:
-        initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
-        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma", luminance_file)
+        initial_png_file, adjusted_png_files, initial_luminance = data_set[:3]
+        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, "gamma")
         
         # Calculate k, b, and c using the fitted relationships
         k_value = linear_model(initial_luminance, *k_params)
@@ -343,7 +334,7 @@ def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_param
         plt.title('ΔE for Each Adjusted Image')
 
     # Add best parameters and average R² to the plot
-    plt.figtext(0.5, 0.01, f'Fitted parameters relationships: k = {k_params[0]:.2f}*initial_luminance + {k_params[1]:.2f}, b = {b_params[0]:.2f}*initial_luminance + {b_params[1]:.2f}, c = {c_params[0]:.2f}*initial_luminance + {c_params[1]:.2f} | Best Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
+    plt.figtext(0.5, 0.01, f'Fitted parameters relationships: k = {k_params[0]:.2f}*Luminance + {k_params[1]:.2f}, b = {b_params[0]:.2f}*Luminance + {b_params[1]:.2f}, c = {c_params[0]:.2f}*Luminance + {c_params[1]:.2f} | Best Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
     
     plt.tight_layout()
     plt.savefig(output_file, dpi=300)
@@ -358,43 +349,43 @@ data_sets_high_luminance = [
      [
          os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i+1)) for i in range(20)
      ],
-     6809.47, os.path.join(current_path, 'data/VW216/sample_luminance.txt')),
+     6809.47),
     
     (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
      [
          os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
-     2654.74, os.path.join(current_path, 'data/VW310/sample_luminance.txt')),
+     2654.74),
     
     (os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
      [
          os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
-     1744.43, os.path.join(current_path, 'data/VW310-PL/sample_luminance.txt')),
+     1744.43),
     
     (os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
      [
          os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
-     2124.45, os.path.join(current_path, 'data/VW316/sample_luminance.txt')),
+     2124.45),
     
     (os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
      [
          os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
-     2381.67, os.path.join(current_path, 'data/VW323/sample_luminance.txt')),
+     2381.67),
     
     (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
      [
          os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
-     9001.23, os.path.join(current_path, 'data/VW326/sample_luminance.txt')),
+     9001.23),
     
     (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
      [
          os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_00{}.png'.format(i+1)) for i in range(10)
      ],
-     15241.2, os.path.join(current_path, 'data/VW331/sample_luminance.txt'))
+     15241.2)
 ]
 
 # Data sets with initial luminance < 100
@@ -403,15 +394,13 @@ data_sets_low_luminance = [
      [
          os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_00{}.png'.format(i+1)) for i in range(20)
      ],
-     25.1441,
-     os.path.join(current_path, 'data/VW316-TLB/sample_luminance.txt')),
+     25.1441),
     
     (os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
      [
          os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_00{}.png'.format(i+1)) for i in range(20)
      ],
-     49.3145,
-     os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt'))
+     49.3145)
 ]
 
 def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fit_type='average', group_name=''):
@@ -419,8 +408,8 @@ def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fi
     all_mean_delta_Es = []
 
     for data_set in data_sets:
-        initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
-        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, "gamma", luminance_file)
+        initial_png_file, adjusted_png_files, initial_luminance = data_set[:3]
+        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, "gamma")
         
         path_parts = initial_png_file.split(os.sep)
         data_index = path_parts.index('data')
@@ -524,7 +513,7 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
 all_params_high, luminance_values_high = fit_on_all_data_sets(data_sets_high_luminance, "gamma", output_base_dir)
 all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
 
-# Visualize and save the relationship between parameters and initial luminance for both high and low luminance data sets
+# Visualize and save the relationship between parameters and luminance for both high and low luminance data sets
 output_file_high = os.path.join(output_base_dir, 'param_vs_luminance_high.png')
 visualize_params(all_params_high, luminance_values_high, output_file_high)
 
