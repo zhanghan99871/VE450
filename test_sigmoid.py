@@ -204,7 +204,7 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
         luminance_values.extend(adaptator.X_Ave_values)  # Use X_Ave_values for fitting
 
         # Save comparison images using fitted a, b, c, d
-        output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
+        output_dir = os.path.join(output_base_dir, f'comparison_images_sigmoid_{os.path.basename(os.path.dirname(initial_png_file))}')
         adaptator.save_comparison_images(output_dir, a_values, b_values, c_values, d_values, adaptator.X_Ave_values, r2_scores, delta_Es)
 
         # Visualize R² and ΔE curve for each fit
@@ -347,7 +347,7 @@ def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, a_param
 
 # Paths and data sets
 current_path = '/home/yaqing/ve450/Human_eye-Adaptation-Rendering-Algorithm/data'
-output_base_dir = os.path.join(current_path, 'comparison_images')
+output_base_dir = os.path.join(current_path, 'comparison_images_sigmoid')
 data_sets = [
     (os.path.join(current_path, 'VW216/VW216.RTSL-BUL.HV_6809.47.png'),
      [os.path.join(current_path, 'VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i+1)) for i in range(20)]),
