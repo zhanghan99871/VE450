@@ -7,7 +7,7 @@
 - `loadRGB(self, png_file)`：加载给定路径的PNG图像文件，将其转换为RGB格式并存储在实例变量中。如果文件不存在或读取失败，会抛出相应的错误。
 - `convert_rgb_to_lab_luminance(self)`：将加载的RGB图像转换为LAB色彩空间，并提取L通道（亮度），存储在实例变量中。
 
-##23. 定义 `HumanEyesAdaptator` 类
+## 2. 定义 `HumanEyesAdaptator` 类
 
 ### 初始化和数据加载
 
@@ -54,3 +54,66 @@
 ### 可视化最佳拟合结果
 
 `visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_params, b_params, c_params, r2_avg)` 方法可视化最佳拟合结果，包括R²和ΔE的变化趋势。图表展示了使用广义模型调整后的图像的R²和ΔE值，并在图表下方标注拟合的线性模型参数和平均R²。
+
+# 代码解释：数据拟合及存储
+
+## 数据集
+
+数据集包含初始图像和多个调整后的图像，分为高亮度和低亮度两组：
+
+### 高亮度数据集
+1. VW216 数据集：初始亮度 6809.47 cd/m²
+2. VW310 数据集：初始亮度 2654.74 cd/m²
+3. VW310-PL 数据集：初始亮度 1744.43 cd/m²
+4. VW316 数据集：初始亮度 2124.45 cd/m²
+5. VW323 数据集：初始亮度 2381.67 cd/m²
+6. VW326 数据集：初始亮度 9001.23 cd/m²
+7. VW331 数据集：初始亮度 15241.2 cd/m²
+
+### 低亮度数据集
+1. VW316-TLB 数据集：初始亮度 25.1441 cd/m²
+2. VW323-TL 数据集：初始亮度 49.3145 cd/m²
+
+## 拟合过程
+
+### 拟合公式
+
+使用伽马函数进行拟合：
+
+$$
+\text{gamma\_function}(X, k, b, c, X_\text{Ave}) = 100 \cdot \log_{10}(1 + 9 \cdot \left( \frac{X}{X_{\text{Max}}} \right)^{k \cdot \log_{10}(1 + c \cdot X_\text{Ave}) + b})
+$$
+
+其中：
+- \(X\) 是输入亮度值
+- \(X_{\text{Max}}\) 是初始图像亮度的最大值
+- \(X_Ave\) 是调整后图像的平均亮度
+- \(k\)、\(b\) 和 \(c\) 是拟合参数
+
+### 拟合方法
+
+1. 对每个数据集中的初始图像提取亮度值 \(X\)。
+2. 对每个调整后的图像，提取亮度值 \(Y\) 并计算平均亮度 \(X_Ave\)。
+3. 使用 `curve_fit` 方法拟合伽马函数，获取最佳拟合参数 \(k\)、\(b\) 和 \(c\)。
+4. 计算拟合的 \(R^2\) 值和色差 \(\Delta E\)。
+
+### 参数初始猜测和边界
+
+初始猜测值为 \([-1, 1, 1]\)，参数边界为 \([-20, -20, 0.1]\) 到 \([20, 20, 10]\)。
+
+## 结果存储
+
+### 结果目录
+
+所有结果存储在以下目录：
+- 高亮度数据集结果存储在 `comparison_images_high_luminance` 目录。
+- 低亮度数据集结果存储在 `comparison_images_low_luminance` 目录。
+- 广义模型结果存储在 `generalized_model` 目录。
+
+### 存储内容
+
+1. **对比图像**：存储在 `comparison_images_{dataset_name}` 目录下，文件名为 `comparison_{i+1}.png`。
+2. **拟合结果可视化**：每个数据集生成的拟合结果可视化图表存储在 `r2_and_delta_e_curve.png` 文件中。
+3. **参数与亮度关系**：参数 \(k\)、\(b\) 和 \(c\) 与亮度关系的可视化图表存储在 `param_vs_luminance.png` 文件中。
+4. **广义模型应用结果**：存储在 `adjusted_with_generalized_model` 目录下的各个子目录中。
+5. **最佳拟合结果可视化**：存储在 `best_fit_results.png` 文件中。

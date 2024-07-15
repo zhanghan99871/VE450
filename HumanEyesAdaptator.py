@@ -158,15 +158,8 @@ class HumanEyesAdaptator:
                # Normalize adjusted luminance to 0-255 range
                 min_val = adjusted_luminance.min()
                 max_val = adjusted_luminance.max()
-                if max_val - min_val == 0:
-                    logging.error(f"Normalization error: max_val ({max_val}) - min_val ({min_val}) = 0")
-                    continue
-                # Check if min_val is non-zero and log a warning
-                if min_val != 0:
-                    logging.warning(f"Adjusted luminance min is not zero: {min_val}")
                 adjusted_luminance = ((adjusted_luminance - min_val) / 
                                     (max_val - min_val) * 255).astype(np.uint8)
-                # Log the min and max values of adjusted luminance after normalization
                 logging.info(f"Normalized luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
                # Ensure luminance values are correctly processed
                 adjusted_luminance = np.clip(adjusted_luminance, 0, 255)
