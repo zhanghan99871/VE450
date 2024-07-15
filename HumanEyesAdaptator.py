@@ -174,7 +174,7 @@ class HumanEyesAdaptator:
                 comparison_img = np.hstack((original_img, adjusted_img))
                 
                 # Add title with the luminance value, R² score, and ΔE
-                title = f"Sample Luminance: {luminance_value:.2f} cd/m^2, R^2: {r2_score_val:.2f}, DeltaE: {delta_E_val:.2f}"
+                title = f"Sample Luminance: X_AVE {luminance_value:.2f} , R^2: {r2_score_val:.2f}, DeltaE: {delta_E_val:.2f}"
                 font = cv.FONT_HERSHEY_SIMPLEX
                 font_scale = 1
                 thickness = 2
@@ -514,13 +514,13 @@ output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
 visualize_params(all_params_low, luminance_values_low, output_file_low)
 
 # Calculate the average parameters for high luminance data sets
-mean_k_high = np.mean([param[0] for param in all_params_high])
-mean_b_high = np.mean([param[1] for param in all_params_high])
-mean_c_high = np.mean([param[2] for param in all_params_high])
+# mean_k_high = np.mean([param[0] for param in all_params_high])
+# mean_b_high = np.mean([param[1] for param in all_params_high])
+# mean_c_high = np.mean([param[2] for param in all_params_high])
 
 # Fit linear models for low luminance data sets
-k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
+# k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
 
 # Apply the generalized model and visualize predictions
-visualize_predictions(data_sets_high_luminance, mean_k_high, mean_b_high, mean_c_high, output_base_dir, fit_type='average', group_name='high_luminance')
-visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
+# visualize_predictions(data_sets_high_luminance, mean_k_high, mean_b_high, mean_c_high, output_base_dir, fit_type='average', group_name='high_luminance')
+# visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
