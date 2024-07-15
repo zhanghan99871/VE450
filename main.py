@@ -1,33 +1,15 @@
 import RawImage
-
+import gamut_clipping
 mode = ["Gamut clipping", "Maintain lightness and hue", "Maintain hue"]
 # Replace with actual file path
 def main():
     image = RawImage.RawImage()
     image.loadRGB('./data/VW216/VW216.RTSL-BUL.HV_002.png')
-    image.gamut_clipping(mode[0], "0.png")
-    #img = RawImage.RawImage(600, 1500)
-    #img.loadRGB("./data/VW216.RTSL-BUL.HV_001.png")
-    #img.loadLuminance("./data/VW216.RTSL-BUL.HV_001.txt")
-    #r_list = []
-    #g_list = []
-    #b_list = []
-    #l_list = []
-    #for i in range(600):
-    #    for j in range(1500):
-    #        r_list.append(img.rgb[i][j][0])
-    #        g_list.append(img.rgb[i][j][1])
-    #        b_list.append(img.rgb[i][j][2])
-    #        l_list.append(img.luminance[i][j])
-    #print(max(r_list))
-    #print(min(r_list))
-    #print(max(g_list))
-    #print(min(g_list))
-    #print(max(b_list))
-    #print(min(b_list))
-    #print(max(l_list))
-    #print(min(l_list))
-
+    speos = RawImage.RawImage()
+    speos.loadRGB('./gamut clipping/VW216.RTSL-BUL.HV_001.png')
+    #image.gamut_clipping(mode[0], "0.png")
+    res = gamut_clipping.eval(image, speos)
+    print(res)
 
 if __name__ == "__main__":
     main()
