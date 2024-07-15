@@ -69,8 +69,8 @@ class HumanEyesAdaptator:
             X_Ave = self.X_Ave_values[i]
             
             # Provide initial guesses and bounds for parameters
-            initial_guesses = [1, 1, 0.5]
-            bounds = ([-10, -10, 0.1], [10, 10, 5])
+            initial_guesses = [-1, 1, 1]
+            bounds = ([-20, -20, 0.1], [20, 20, 10])
             
             try:
                 params, _ = curve_fit(
