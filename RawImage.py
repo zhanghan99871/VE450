@@ -1,30 +1,35 @@
 import numpy as np
 import cv2 as cv
-
+from skimage import color
+import matplotlib.pyplot as plt
 
 class RawImage:
-    def __init__(self, x, y):
-        self.luminance = np.zeros((x, y, 1))
-        self.rgb = np.zeros((x, y, 3))
+    def __init__(self):
+        self.luminance = None
+        self.rgb = None
 
     def loadRGB(self, png_file):
         img = cv.imread(png_file)
         self.rgb = np.array(cv.cvtColor(img, cv.COLOR_BGR2RGB))
 
-    def loadLuminance(self, txt_file):
-        with open(txt_file, 'r') as file:
-            lines = file.readlines()
-            # flag for reading the content below the "X Y value" line
-            start_reading = False
-            for line in lines:
-                if start_reading:
-                    parts = line.strip().split()
-                    # TODO: add the correct number according to
-                    # the txt file's begining lines
-                    x = float(parts[0]) + 15
-                    y = float(parts[1]) + 7
-                    value = float(parts[2])
-                    self.luminance[int(y / 0.02)][int(x / 0.02)][0] = value
-                if 'X' in line:
-                    start_reading = True
+    def convert_rgb_to_lab_luminance(self):
+        if self.rgb is not None:
+            lab = color.rgb2lab(self.rgb / 255.0)
+            self.luminance = lab[:, :, 0]
+        else:
+            raise ValueError("RGB data is not loaded.")
 
+    def saveLuminance(self, file_name):
+        if self.luminance is not None:
+            plt.imshow(self.luminance, cmap='gray')
+            plt.colorbar()
+            plt.savefig(file_name)
+            print(f"Luminance data has been saved to {file_name}")
+        else:
+            print("Luminance data is not loaded.")
+
+# Example usage
+# image = RawImage()
+# image.loadRGB('/home/yaqing/ve450/Human_eye-Adaptation-Rendering-Algorithm/data/VW216.RTSL-BUL.HV/VW216.RTSL-BUL.HV_init.png')
+# image.convert_rgb_to_lab_luminance()
+# image.saveLuminance('luminance_image.png')
