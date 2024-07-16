@@ -29,11 +29,12 @@ def gamma_function(X, k, b, c, X_Ave, epsilon=1e-10, max_val=1e3):
 '''
 `adapt_luminance` is a function that connects the algorithm with the GUI. The GUI is supposed to allow users to upload an image and enter a sample luminance value so that the image can be processed using gamma correction. The arguments `image_path` and `sample_luminance` should be extracted from users' input.
 '''
-def adapt_luminance(image_path, sample_luminance):
-    original_img = cv.imread(image_path)
-
-    image = RawImage()
-    image.loadRGB(image_path)
+def adapt_luminance(image, sample_luminance):
+    # original_img = cv.imread(image_path)
+    #
+    # image = RawImage()
+    # image.loadRGB(image_path)
+    original_img = np.array(image)
 
     lab_original = cv.cvtColor(original_img, cv.COLOR_BGR2LAB)
     l, a, b_ch = cv.split(lab_original)

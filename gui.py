@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 from tkinter import filedialog
 import numpy as np
 import colorsys
+from adapt_luminance import adapt_luminance
 MAX_WIDTH = 1500
 MAX_HEIGHT = 800
 color_space = {}
@@ -32,6 +33,7 @@ class GUI:
         self.tk.config(menu=self.menu)
         self.image = None
         self.tk.bind("<Configure>", self._resize)
+        self.luminance = None
         # self.pixel_label = Label(self.tk, text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0, 0, 0))
 
     def create_menu(self):
@@ -68,6 +70,24 @@ class GUI:
     def get_value(self):
         self.create_sub_window_get_value()
 
+    def refresh(self):
+        image = self.image
+        photo = ImageTk.PhotoImage(image)
+        # If an image is already displayed, remove it
+        self.canvas.delete("all")
+
+        # Resize the canvas
+        self.canvas.config(width=image.width+20, height=image.height+20)
+
+        # Display the image on the canvas
+        self.canvas.create_image(0, 0, anchor=NW, image=photo)
+
+        # Keep a reference to the image to prevent garbage collection
+        self.canvas.image = photo
+
+        self.text_id = self.canvas.create_text(100, image.height+20,
+                                text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0, 0, 0))
+
     def create_sub_window_get_value(self): # sub window to get value
         self.sub_window = Toplevel(self.tk)
         self.sub_window.title("Sub Window")
@@ -83,13 +103,13 @@ class GUI:
         result_label.grid(row=3, column=2)
         def submit():
             # Retrieve the data from the entry widget
-            if self.image:
+            if self.image is not None:
                 x_input = self.x_entry.get()
                 y_input = self.y_entry.get()
                 rgb = self.get_value_from_color_space(x_input, y_input)
                 # Display or use the data (here we update a label as an example)
                 result_label.config(text="value is:({}, {}, {})".format(rgb[0], rgb[1], rgb[2]))
-        button_to_get = Button(self.sub_window, text="Submit", command=submit)
+        button_to_get = Button(self.sub_window, text="Enter", command=submit)
         button_to_get.grid(row=1, column=2)
 
     def create_sub_window_luminance_adjust(self): # sub window to get value
@@ -101,10 +121,29 @@ class GUI:
         self.x_entry.grid(row=0, column=1)
         def submit():
             # Retrieve the data from the entry widget
-            if self.image:
+            if self.image is not None:
                 x_input = self.x_entry.get()
-                self.luminance = x_input
-        button_to_get = Button(self.sub_window, text="Submit", command=submit)
+                self.luminance = float(x_input)
+                self.image = Image.fromarray(adapt_luminance(self.image, self.luminance))
+                image = self.image
+                photo = ImageTk.PhotoImage(image)
+                self.tk.geometry("{}x{}".format(image.width + 50, image.height + 50))
+                # If an image is already displayed, remove it
+                self.canvas.delete("all")
+
+                # Resize the canvas
+                self.canvas.config(width=image.width + 20, height=image.height + 20)
+
+                # Display the image on the canvas
+                self.canvas.create_image(0, 0, anchor=NW, image=photo)
+
+                # Keep a reference to the image to prevent garbage collection
+                self.canvas.image = photo
+
+                self.text_id = self.canvas.create_text(100, image.height + 20,
+                                                       text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0,
+                                                                                                    0, 0))
+        button_to_get = Button(self.sub_window, text="Enter", command=submit)
         button_to_get.grid(row=1, column=1)
 
 
@@ -167,7 +206,7 @@ class GUI:
                                 text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0, 0, 0))
 
     def display_pixel(self):
-        if self.image:
+        if self.image is not None:
             value = self.get_value_from_color_space(self.x * self.w_ratio, self.y * self.h_ratio)
             self.canvas.itemconfig(self.text_id,
                                    text="x={}, y={}, value=({}, {}, {})".format(int(self.x * self.w_ratio),
