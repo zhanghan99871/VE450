@@ -56,7 +56,7 @@ class GUI:
         helpmenu.add_command(label="Help")
 
     def luminance_adjust(self):
-        pass
+        self.create_sub_window_luminance_adjust()
 
     def gamut_clip(self):
         pass
@@ -66,9 +66,9 @@ class GUI:
         print(self.color_mode)
 
     def get_value(self):
-        self.create_sub_window()
+        self.create_sub_window_get_value()
 
-    def create_sub_window(self): # sub window to get value
+    def create_sub_window_get_value(self): # sub window to get value
         self.sub_window = Toplevel(self.tk)
         self.sub_window.title("Sub Window")
         x_label = Label(self.sub_window, text="x: ")
@@ -91,6 +91,21 @@ class GUI:
                 result_label.config(text="value is:({}, {}, {})".format(rgb[0], rgb[1], rgb[2]))
         button_to_get = Button(self.sub_window, text="Submit", command=submit)
         button_to_get.grid(row=1, column=2)
+
+    def create_sub_window_luminance_adjust(self): # sub window to get value
+        self.sub_window = Toplevel(self.tk)
+        self.sub_window.title("Sub Window")
+        x_label = Label(self.sub_window, text="adjusted luminance: ")
+        x_label.grid(row=0, column=0)
+        self.x_entry = Entry(self.sub_window, width=30)
+        self.x_entry.grid(row=0, column=1)
+        def submit():
+            # Retrieve the data from the entry widget
+            if self.image:
+                x_input = self.x_entry.get()
+                self.luminance = x_input
+        button_to_get = Button(self.sub_window, text="Submit", command=submit)
+        button_to_get.grid(row=1, column=1)
 
 
     def rescale(self):
