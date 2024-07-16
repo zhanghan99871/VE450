@@ -14,17 +14,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 
 class HumanEyesAdaptator:
-    def __init__(self, initial_png_file, adjusted_png_files, initial_luminance, luminance_file=None):
-        self.X = self.extract_luminance_from_png(initial_png_file)
-        self.Y_files = adjusted_png_files
-        self.X_Max = self.X.max()
-        self.initial_luminance = initial_luminance
-        self.luminance_generator = LuminanceGenerator(self.initial_luminance)
-
-        if luminance_file:
-            self.X_Ave_values = self.read_luminance_from_file(luminance_file)
-        else:
-            self.X_Ave_values = self.generate_sample_luminance_values()
+    def __init__(self, dataset):
+        # dataset is [(initial_png_file, adjusted_png_files, initial_luminance, luminance_file)]
+        self.X, self.Y_files, self.X_Max, self.initial_luminance, self.X_Ave_values = [], [], [], [], []
+        for (initial_png_file, adjusted_png_files, initial_luminance, luminance_file) in dataset:
+            new_X = self.extract_luminance_from_png(initial_png_file)
+            self.X.append(new_X)
+            self.Y_files.append(adjusted_png_files)
+            self.X_Max.append(new_X.max())
+            self.initial_luminance.append(initial_luminance)
+            self.X_Ave_values.append(self.read_luminance_from_file(luminance_file))
 
     def extract_luminance_from_png(self, png_file):
         image = RawImage()  # txt_file is not needed here
@@ -42,15 +41,15 @@ class HumanEyesAdaptator:
             logging.error(f"Error reading luminance values from file {file_path}: {e}")
             return []
 
-    def gamma_function(self, X, k, b, c, X_Ave, epsilon=1e-10, max_val=1e3):
+    def gamma_function(self, X, k, b, c, X_Ave, index, epsilon=1e-10, max_val=1e3):
         X = X + epsilon  # Add epsilon to avoid log10(0)
-        X_Ave_adjusted = 1 + c * np.log10(X_Ave / self.initial_luminance)
+        X_Ave_adjusted = 1 + c * np.log10(X_Ave / self.initial_luminance[index])
         if isinstance(X_Ave_adjusted, np.ndarray):
             X_Ave_adjusted[X_Ave_adjusted <= 0] = epsilon  # Ensure positive values
         else:
             X_Ave_adjusted = max(X_Ave_adjusted, epsilon)
 
-        inner_term = X / self.X_Max
+        inner_term = X / self.X_Max[index]
         inner_term[inner_term <= 0] = epsilon  # Ensure positive values
         inner_term = np.clip(inner_term, 0, max_val)  # Cap to max_val
 
@@ -73,10 +72,16 @@ class HumanEyesAdaptator:
         c_values = []
         r2_scores = []
         delta_Es = []
+        X_list = np.array([])
+        Y_list = np.array([])
 
-        for i, y_file in enumerate(self.Y_files):
-            Y = self.extract_luminance_from_png(y_file)
-            X_Ave = self.X_Ave_values[i]
+        for i in range(len(self.Y_files[0])): # number of luminance
+            for j in range(len(self.Y_files)): # number of images
+                Y = self.extract_luminance_from_png(self.Y_files[j][i])
+                Y_list = np.append(Y_list, Y.ravel())
+                X_list = np.append(X_list, self.X[j].ravel())
+
+            X_Ave = self.X_Ave_values[0][i]
 
             # Provide initial guesses and bounds for parameters
             initial_guesses = [1, 1, 1]
@@ -84,8 +89,8 @@ class HumanEyesAdaptator:
 
             try:
                 params, _ = curve_fit(
-                    lambda X, k, b, c: self.gamma_function(X, k, b, c, X_Ave),
-                    self.X.ravel(), Y.ravel(),
+                    lambda X, k, b, c: self.gamma_function(X, k, b, c, X_Ave, i),
+                    X_list.ravel(), Y_list.ravel(),
                     p0=initial_guesses, bounds=bounds
                 )
                 k_values.append(params[0])
@@ -93,15 +98,15 @@ class HumanEyesAdaptator:
                 c_values.append(params[2])
 
                 # Calculate R²
-                Y_pred = self.gamma_function(self.X, params[0], params[1], params[2], X_Ave)
-                r2 = r2_score(Y.ravel(), Y_pred.ravel())
+                Y_pred = self.gamma_function(X_list.ravel(), params[0], params[1], params[2], X_Ave, i)
+                r2 = r2_score(np.array(Y_list).ravel(), Y_pred.ravel())
                 r2_scores.append(r2)
 
                 # Calculate ΔE
-                delta_E = np.sqrt(mse(Y, Y_pred))
+                delta_E = np.sqrt(mse(Y_list, Y_pred))
                 delta_Es.append(delta_E)
             except RuntimeError as e:
-                print(f"Fit did not converge for file {y_file}: {e}")
+                print(f"Fit did not converge for file {i}: {e}")
                 continue
 
         r2_avg = np.mean(r2_scores)
@@ -224,26 +229,22 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
     all_params = []
     luminance_values = []
 
-    for data_set in data_sets:
-        initial_png_file, adjusted_png_files, initial_luminance, luminance_file = data_set
+    adaptator = HumanEyesAdaptator(data_sets)
 
-        adaptator = HumanEyesAdaptator(initial_png_file, adjusted_png_files, initial_luminance, fit_func,
-                                       luminance_file)
+    # Fit gamma
+    k_values, b_values, c_values, r2_avg, r2_scores, delta_Es = adaptator.fit()
+    for k, b, c in zip(k_values, b_values, c_values):
+        all_params.append((k, b, c))
+    luminance_values.extend([initial_luminance] * len(k_values))  # Use initial_luminance for fitting
 
-        # Fit gamma
-        k_values, b_values, c_values, r2_avg, r2_scores, delta_Es = adaptator.fit()
-        for k, b, c in zip(k_values, b_values, c_values):
-            all_params.append((k, b, c))
-        luminance_values.extend([initial_luminance] * len(k_values))  # Use initial_luminance for fitting
-
-        # Save comparison images using fitted k, b, and c
-        output_dir = os.path.join(output_base_dir,
+    # Save comparison images using fitted k, b, and c
+    output_dir = os.path.join(output_base_dir,
                                   f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
-        adaptator.save_comparison_images(output_dir, k_values, b_values, c_values, adaptator.X_Ave_values, r2_scores,
+    adaptator.save_comparison_images(output_dir, k_values, b_values, c_values, adaptator.X_Ave_values, r2_scores,
                                          delta_Es)
 
-        # Visualize R² and ΔE curve for each fit
-        adaptator.visualize_fit(k_values, b_values, c_values, r2_scores, delta_Es,
+    # Visualize R² and ΔE curve for each fit
+    adaptator.visualize_fit(k_values, b_values, c_values, r2_scores, delta_Es,
                                 os.path.join(output_dir, 'r2_and_delta_e_curve.png'), r2_avg)
 
     return all_params, luminance_values
@@ -385,11 +386,11 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 output_base_dir = os.path.join(current_path, 'data/comparison_images')
 # Data sets with initial luminance >= 100
 data_sets_high_luminance = [
-    (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
-     [
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i + 1)) for i in range(20)
-     ],
-     6809.47, os.path.join(current_path, 'data/VW216/sample_luminance.txt')),
+    # (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i + 1)) for i in range(20)
+    #  ],
+    #  6809.47, os.path.join(current_path, 'data/VW216/sample_luminance.txt')),
 
     (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
      [
@@ -429,22 +430,22 @@ data_sets_high_luminance = [
                       'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_00{}.png'.format(i + 1))
          for i in range(10)
      ],
-     15241.2, os.path.join(current_path, 'data/VW331/sample_luminance.txt')),
+     15241.2, os.path.join(current_path, 'data/VW331/sample_luminance.txt'))
 
-    (os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_25.1441.png'),
-     [
-         os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_00{}.png'.format(i + 1)) for i in
-         range(20)
-     ],
-     25.1441,
-     os.path.join(current_path, 'data/VW316-TLB/sample_luminance.txt')),
+    # (os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_25.1441.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_00{}.png'.format(i + 1)) for i in
+    #      range(20)
+    #  ],
+    #  25.1441,
+    #  os.path.join(current_path, 'data/VW316-TLB/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
-     [
-         os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_00{}.png'.format(i + 1)) for i in range(20)
-     ],
-     49.3145,
-     os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt'))
+    # (os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_00{}.png'.format(i + 1)) for i in range(20)
+    #  ],
+    #  49.3145,
+    #  os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt'))
 ]
 
 
