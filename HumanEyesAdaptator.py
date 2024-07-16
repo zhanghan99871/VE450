@@ -6,7 +6,6 @@ import cv2 as cv
 from skimage.metrics import mean_squared_error as mse
 import logging
 from RawImage import RawImage
-from generate_luminance_values import LuminanceGenerator
 import matplotlib.pyplot as plt
 
 # Set up logging
@@ -18,16 +17,11 @@ class HumanEyesAdaptator:
         self.Y_files = adjusted_png_files
         self.X_Max = self.X.max()
         self.initial_luminance = initial_luminance 
-        self.luminance_generator = LuminanceGenerator(self.initial_luminance)
         self.fit_func = fit_func
-
-        if luminance_file:
-            self.X_Ave_values = self.read_luminance_from_file(luminance_file)
-        else:
-            self.X_Ave_values = self.generate_sample_luminance_values()
+        self.X_Ave_values = self.read_luminance_from_file(luminance_file)
 
     def extract_luminance_from_png(self, png_file):
-        image = RawImage()  # txt_file is not needed here
+        image = RawImage()
         image.loadRGB(png_file)
         image.convert_rgb_to_lab_luminance()
         return image.luminance
@@ -41,30 +35,6 @@ class HumanEyesAdaptator:
         except Exception as e:
             logging.error(f"Error reading luminance values from file {file_path}: {e}")
             return []
-
-    '''Do we need this function?'''
-    # def apply_brightness_adjustment(self, df, X_Ave, k, b, c, epsilon=1e-10, max_val=1e3):
-    #     try:
-    #         df = df + epsilon  # Add epsilon to avoid log10(0)
-    #         X_Ave_adjusted = 1 + c * X_Ave
-    #         X_Ave_adjusted = np.clip(X_Ave_adjusted, epsilon, max_val)
-    #
-    #         inner_term = df / self.X_Max
-    #         inner_term = np.clip(inner_term, epsilon, max_val)
-    #
-    #         exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
-    #         exponent = np.clip(exponent, -max_val, max_val)
-    #
-    #         with np.errstate(over='ignore'):  # Suppress overflow warnings
-    #             power_term = np.power(inner_term, exponent)
-    #             power_term = np.clip(power_term, -max_val, max_val)
-    #
-    #         Y = 100 * np.log10(1 + 9 * power_term)
-    #         logging.info(f"Brightness adjustment applied successfully.")
-    #         return Y
-    #     except Exception as e:
-    #         logging.error(f"Error in apply_brightness_adjustment: {e}")
-    #         return np.zeros_like(df)  # Return a default value to prevent crashes
 
     def gamma_function(self, X, k, b, c, X_Ave, epsilon=1e-10, max_val=1e3):
         X = X + epsilon  # Add epsilon to avoid log10(0)
@@ -81,9 +51,8 @@ class HumanEyesAdaptator:
         exponent = k * np.log10(np.clip(X_Ave_adjusted, epsilon, max_val)) + b
         exponent = np.clip(exponent, -max_val, max_val)  # Cap to prevent overflow
 
-        with np.errstate(over='ignore'):  # Suppress overflow warnings
-            power_term = np.power(inner_term, exponent)
-            power_term = np.clip(power_term, -max_val, max_val)  # Cap to prevent overflow
+        power_term = np.power(inner_term, exponent)
+        power_term = np.clip(power_term, -max_val, max_val)  # Cap to prevent overflow
 
         gamma_result = 100 * np.log10(1 + 9 * power_term)
         return gamma_result
@@ -99,7 +68,7 @@ class HumanEyesAdaptator:
             Y = self.extract_luminance_from_png(y_file)
             X_Ave = self.X_Ave_values[i]
             
-            # Provide initial guesses and bounds for parameters
+            # TODO: change initial guesses and bounds for parameters
             initial_guesses = [1, 1, 0.5]
             bounds = ([-10, -10, 0.1], [10, 10, 5])
             
@@ -140,8 +109,8 @@ class HumanEyesAdaptator:
         for i, txt in enumerate(r2_scores):
             plt.annotate(f"{txt:.4f}", (i+1, r2_scores[i]))
         plt.xlabel('Image Index')
-        plt.ylabel('R² Score')
-        plt.title('R² Scores for Each Adjusted Image')
+        plt.ylabel('R^2 Score')
+        plt.title('R^2 Scores for Each Adjusted Image')
         
         # Plot ΔE values
         plt.subplot(1, 2, 2)
@@ -149,8 +118,8 @@ class HumanEyesAdaptator:
         for i, txt in enumerate(delta_Es):
             plt.annotate(f"{txt:.4f}", (i+1, delta_Es[i]))
         plt.xlabel('Image Index')
-        plt.ylabel('ΔE')
-        plt.title('ΔE for Each Adjusted Image')
+        plt.ylabel('DeltaE')
+        plt.title('DeltaE for Each Adjusted Image')
         
         # Add k, b, c values and average R² to the plot
         plt.figtext(0.5, 0.01, f'Fitted parameters: k = {np.mean(k_values):.2f}, b = {np.mean(b_values):.2f}, c = {np.mean(c_values):.2f} | Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
@@ -160,11 +129,7 @@ class HumanEyesAdaptator:
         plt.close()
         logging.info(f"Figure saved to {output_file}")
 
-    def generate_sample_luminance_values(self):
-        return self.luminance_generator.generate_sample_luminance_values()
-
     def save_comparison_images(self, output_dir, k_values, b_values, c_values, sample_luminance_values, r2_scores, delta_Es):
-        # Ensure the output directory exists
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
@@ -193,17 +158,9 @@ class HumanEyesAdaptator:
                 # Log the min and max values of adjusted luminance before normalization
                 logging.info(f"Adjusted luminance min: {adjusted_luminance.min()}, max: {adjusted_luminance.max()}")
                 
-                # Normalize adjusted luminance to 0-255 range
+                # TODO: Not sure. Normalize adjusted luminance to 0-255 range
                 min_val = adjusted_luminance.min()
                 max_val = adjusted_luminance.max()
-                if max_val - min_val == 0:
-                    logging.error(f"Normalization error: max_val ({max_val}) - min_val ({min_val}) = 0")
-                    continue
-                
-                # Check if min_val is non-zero and log a warning
-                if min_val != 0:
-                    logging.warning(f"Adjusted luminance min is not zero: {min_val}")
-
                 adjusted_luminance = ((adjusted_luminance - min_val) / 
                                     (max_val - min_val) * 255).astype(np.uint8)
                 
@@ -252,7 +209,7 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
         luminance_values.extend([initial_luminance] * len(k_values))  # Use initial_luminance for fitting
 
         # Save comparison images using fitted k, b, and c
-        output_dir = os.path.join(output_base_dir, f'comparison_images_{os.path.basename(os.path.dirname(initial_png_file))}')
+        output_dir = os.path.join(output_base_dir, f'comparison_gamma_{os.path.basename(os.path.dirname(initial_png_file))}')
         adaptator.save_comparison_images(output_dir, k_values, b_values, c_values, adaptator.X_Ave_values, r2_scores, delta_Es)
 
         # Visualize R² and ΔE curve for each fit
@@ -260,6 +217,7 @@ def fit_on_all_data_sets(data_sets, fit_func, output_base_dir):
 
     return all_params, luminance_values
 
+# plot the relationship between mean values of k, b, and c and initial luminance
 def visualize_params(all_params, initial_luminance, output_file):
     plt.figure(figsize=(10, 6))
 
@@ -301,6 +259,7 @@ def visualize_params(all_params, initial_luminance, output_file):
     plt.savefig(output_file, dpi=300)
     plt.close()
 
+# Linear fit params with luminance for low luminance data sets
 def fit_relationships(all_params, luminance_values):
     k_values, b_values, c_values = zip(*all_params)
     k_values, b_values, c_values = np.array(k_values).ravel(), np.array(b_values).ravel(), np.array(c_values).ravel()
@@ -315,6 +274,7 @@ def fit_relationships(all_params, luminance_values):
 
     return k_params, b_params, c_params
 
+# apply the generalized model (linear for now) and visualize the results
 def apply_generalized_model(data_sets, k_params, b_params, c_params, output_base_dir):
     def linear_model(x, m, c):
         return m * x + c
@@ -384,7 +344,8 @@ def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_param
 
 # Paths and data sets
 current_path = os.path.abspath(os.path.dirname(__file__))
-output_base_dir = os.path.join(current_path, 'data/comparison_images')
+output_base_dir = os.path.join(current_path, 'comparisons_gamma')
+
 # Data sets with initial luminance >= 100
 data_sets_high_luminance = [
     (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
@@ -446,17 +407,6 @@ data_sets_low_luminance = [
      49.3145,
      os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt'))
 ]
-
-# Fit on all data sets separately to get individual k, b, and c values and save comparison images
-all_params_high, luminance_values_high = fit_on_all_data_sets(data_sets_high_luminance, "gamma", output_base_dir)
-all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
-
-# Visualize and save the relationship between parameters and initial luminance for both high and low luminance data sets
-output_file_high = os.path.join(output_base_dir, 'param_vs_luminance_high.png')
-visualize_params(all_params_high, luminance_values_high, output_file_high)
-
-output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
-visualize_params(all_params_low, luminance_values_low, output_file_low)
 
 def visualize_predictions(data_sets, mean_k, mean_b, mean_c, output_base_dir, fit_type='average', group_name=''):
     all_mean_r2_scores = []
@@ -564,12 +514,22 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
     plt.close()
     logging.info(f"Mean ΔE performance figure saved to {output_file_deltaE}")
 
-# Calculate the average parameters for high luminance data sets
+# Fit on all data sets separately to get individual k, b, and c values and save comparison images
+all_params_high, luminance_values_high = fit_on_all_data_sets(data_sets_high_luminance, "gamma", output_base_dir)
+all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
+
+# Visualize and save the relationship between parameters and initial luminance for both high and low luminance data sets
+output_file_high = os.path.join(output_base_dir, 'param_vs_luminance_high.png')
+visualize_params(all_params_high, luminance_values_high, output_file_high)
+output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
+visualize_params(all_params_low, luminance_values_low, output_file_low)
+
+# Calculate the average parameters for high luminance data sets (use this as generalized model for high luminance data)
 mean_k_high = np.mean([param[0] for param in all_params_high])
 mean_b_high = np.mean([param[1] for param in all_params_high])
 mean_c_high = np.mean([param[2] for param in all_params_high])
 
-# Fit linear models for low luminance data sets
+# Fit linear models for low luminance data sets (use this as generalized model for low luminance data)
 k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
 
 # Apply the generalized model and visualize predictions
