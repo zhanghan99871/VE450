@@ -54,7 +54,7 @@ def adapt_luminance(image_path, sample_luminance):
 
     comparison_img = np.hstack((original_img, adjusted_img))
 
-    title = f"Left: Original image | Right: Processed image | Sample Luminance: {luminance_value:.6g} cd/m^2"
+    title = f"Left: Original image | Right: Processed image | Sample Luminance: {sample_luminance:.6g} cd/m^2"
     font = cv.FONT_HERSHEY_SIMPLEX
     font_scale = 2
     thickness = 2
