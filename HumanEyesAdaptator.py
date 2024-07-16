@@ -530,8 +530,8 @@ mean_b_high = np.mean([param[1] for param in all_params_high])
 mean_c_high = np.mean([param[2] for param in all_params_high])
 
 # Fit linear models for low luminance data sets (use this as generalized model for low luminance data)
-# k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
+k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
 
 # Apply the generalized model and visualize predictions
 visualize_predictions(data_sets_high_luminance, mean_k_high, mean_b_high, mean_c_high, output_base_dir, fit_type='average', group_name='high_luminance')
-# visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
+visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
