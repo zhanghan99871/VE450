@@ -14,13 +14,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 
 class HumanEyesAdaptator:
-    def __init__(self, initial_png_file, adjusted_png_files, initial_luminance, fit_func, luminance_file=None):
+    def __init__(self, initial_png_file, adjusted_png_files, initial_luminance, luminance_file=None):
         self.X = self.extract_luminance_from_png(initial_png_file)
         self.Y_files = adjusted_png_files
         self.X_Max = self.X.max()
         self.initial_luminance = initial_luminance
         self.luminance_generator = LuminanceGenerator(self.initial_luminance)
-        self.fit_func = fit_func
 
         if luminance_file:
             self.X_Ave_values = self.read_luminance_from_file(luminance_file)
