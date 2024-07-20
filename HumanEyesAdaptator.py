@@ -463,7 +463,7 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
         plt.annotate(f"{txt:.4f}", (i+1, all_mean_r2_scores[i]))
     plt.xlabel('Dataset Index')
     plt.ylabel('Mean R² Score')
-    plt.title(f'Mean R² Scores for Each Adjusted Dataset ({group_name})')
+    plt.title(f'Mean R² Scores for Each Adjusted Dataset')
     
     # Annotate with k, b, c parameters and average R²
     if group_name == 'high_luminance':
