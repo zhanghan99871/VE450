@@ -39,7 +39,7 @@ def adapt_luminance(image, sample_luminance):
     lab_original = cv.cvtColor(original_img, cv.COLOR_BGR2LAB)
     l, a, b_ch = cv.split(lab_original)
 
-    adjusted_luminance = gamma_function(l, 0.65, 0.63, 0.5, sample_luminance)
+    adjusted_luminance = gamma_function(l, 0.65, 0.63, 0.5, sample_luminance**2)
 
     min_val = adjusted_luminance.min()
     max_val = adjusted_luminance.max()

@@ -5,6 +5,7 @@ from tkinter import filedialog
 import numpy as np
 import colorsys
 from adapt_luminance import adapt_luminance
+from glare import add_glare
 MAX_WIDTH = 1500
 MAX_HEIGHT = 800
 color_space = {}
@@ -34,6 +35,8 @@ class GUI:
         self.image = None
         self.tk.bind("<Configure>", self._resize)
         self.luminance = None
+        self.glare_switch = False
+        self.image_copy = None
         # self.pixel_label = Label(self.tk, text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0, 0, 0))
 
     def create_menu(self):
@@ -51,11 +54,24 @@ class GUI:
         toolmenu.add_command(label="Rescale to original size", command=self.rescale)
         toolmenu.add_command(label="Change color space", command=self.change_color_space)
         toolmenu.add_command(label="Get value", command=self.get_value)
+        toolmenu.add_command(label="Glare", command=self.glare_adjust)
 
         helpmenu = Menu(self.menu)
         self.menu.add_cascade(label='Help', menu=helpmenu)
         helpmenu.add_command(label='About')
         helpmenu.add_command(label="Help")
+
+    def glare_adjust(self):
+        if not self.glare_switch:
+            self.image_copy = self.image.copy()
+            self.glare_switch = True
+            self.image = Image.fromarray(add_glare(np.array(self.image)))
+            self.refresh()
+        else:
+            self.image = self.image_copy
+            self.glare_switch = False
+            self.refresh()
+
 
     def luminance_adjust(self):
         self.create_sub_window_luminance_adjust()
@@ -125,48 +141,14 @@ class GUI:
                 x_input = self.x_entry.get()
                 self.luminance = float(x_input)
                 self.image = Image.fromarray(adapt_luminance(self.image, self.luminance))
-                image = self.image
-                photo = ImageTk.PhotoImage(image)
-                self.tk.geometry("{}x{}".format(image.width + 50, image.height + 50))
-                # If an image is already displayed, remove it
-                self.canvas.delete("all")
-
-                # Resize the canvas
-                self.canvas.config(width=image.width + 20, height=image.height + 20)
-
-                # Display the image on the canvas
-                self.canvas.create_image(0, 0, anchor=NW, image=photo)
-
-                # Keep a reference to the image to prevent garbage collection
-                self.canvas.image = photo
-
-                self.text_id = self.canvas.create_text(100, image.height + 20,
-                                                       text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0,
-                                                                                                    0, 0))
+                self.refresh()
         button_to_get = Button(self.sub_window, text="Enter", command=submit)
         button_to_get.grid(row=1, column=1)
 
 
     def rescale(self):
-        if self.image:
-            image = self.image
-            self.tk.geometry("{}x{}".format(image.width + 50, image.height + 50))
-            photo = ImageTk.PhotoImage(image)
-            # If an image is already displayed, remove it
-            self.canvas.delete("all")
-
-            # Resize the canvas
-            self.canvas.config(width=image.width + 20, height=image.height + 20)
-
-            # Display the image on the canvas
-            self.canvas.create_image(0, 0, anchor=NW, image=photo)
-
-            # Keep a reference to the image to prevent garbage collection
-            self.canvas.image = photo
-
-            self.text_id = self.canvas.create_text(100, image.height + 20,
-                                                   text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0, 0,
-                                                                                                0))
+        if self.image is not None:
+            self.refresh()
         else:
             pass
 
@@ -186,7 +168,8 @@ class GUI:
     def display_image(self, path):
         image = Image.open(path)
         if image.width > MAX_WIDTH or image.height > MAX_HEIGHT:
-            image = image.resize((min((MAX_WIDTH, image.width)), min((MAX_HEIGHT, image.height))))
+            scale = max(image.width/MAX_WIDTH, image.height/MAX_HEIGHT)
+            image = image.resize((int(image.width/scale), int(image.height/scale)))
         photo = ImageTk.PhotoImage(image)
         self.tk.geometry("{}x{}".format(image.width+50, image.height+50))
         self.image = image
