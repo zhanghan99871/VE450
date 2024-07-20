@@ -1,22 +1,60 @@
-import RawImage
-import math
-import colorsys
+import io
+from PIL import Image, ImageCms
 
-def eval(img1, img2):
-    total_sum = 0
-    for h in range(img1.res[0]):
-        for w in range(img1.res[1]):
-            diff = [0.0,0.0,0.0]
-            hue,lit,sat = colorsys.rgb_to_hls(img1.rgb[h][w][0]/float(256), img1.rgb[h][w][1]/float(256), img1.rgb[h][w][2]/float(256))
-            img1_hls = [hue,lit,sat]
-            hue,lit,sat = colorsys.rgb_to_hls(img2.rgb[h][w][0]/float(256), img2.rgb[h][w][1]/float(256), img2.rgb[h][w][2]/float(256))
-            img2_hls = [hue,lit,sat]
-            for i in range(3):
-                dif = img1_hls[i] - img2_hls[i]
-                diff[i] = dif*dif
-            sum = 0.0
-            for i in range(3):
-                sum += diff[i]
-            sum = math.sqrt(sum)
-            total_sum += sum
-    return total_sum
+
+class GamutClipper:
+
+    class ClipIntent():
+        GAMUT_CLIPPING = 0
+        MAINTAIN_H = 1
+        MAINTAIN_LH = 2
+
+        def __init__(self):
+            self.option = self.GAMUT_CLIPPING
+
+    def __get_intent(
+        clip_intent: ClipIntent
+    ) -> ImageCms.ImageCmsTransform:
+        rendering_intent = None
+        if clip_intent == GamutClipper.ClipIntent.GAMUT_CLIPPING:
+            rendering_intent = ImageCms.Intent.ABSOLUTE_COLORIMETRIC
+        elif clip_intent == GamutClipper.ClipIntent.MAINTAIN_H:
+            rendering_intent = ImageCms.Intent.PERCEPTUAL
+        elif clip_intent == GamutClipper.ClipIntent.MAINTAIN_LH:
+            rendering_intent = ImageCms.Intent.RELATIVE_COLORIMETRIC
+        return rendering_intent
+
+    def Clip(
+        im: Image, clip_intent: ClipIntent,
+        output_icc_path: str = None
+    ) -> Image:
+        # if there is no colorspace info in the image, directly return it
+        if im.info.get("icc_profile") is None:
+            return im
+
+        # get the input icc profile
+        input_icc_profile = io.BytesIO(im.info.get('icc_profile'))
+        input_icc = ImageCms.ImageCmsProfile(input_icc_profile)
+        # get the output icc profile
+        output_icc = ImageCms.getOpenProfile(output_icc_path)
+        # get rendering intent from cliping intent
+        rendering_intent = GamutClipper.__get_intent(clip_intent)
+
+        map = ImageCms.ImageCmsTransform(
+            input=input_icc,
+            output=output_icc,
+            input_mode="RGB",
+            output_mode="RGB",
+            intent=rendering_intent
+        )
+        return ImageCms.applyTransform(im, map)
+
+
+# test code
+if __name__ == "__main__":
+    image = Image.open("../62AHB.jpg")
+    output_icc_path = "/usr/share/color/icc/colord/AdobeRGB1998.icc"
+    clip_intent = GamutClipper.ClipIntent.GAMUT_CLIPPING
+    clipped_image = GamutClipper.Clip(image, clip_intent, output_icc_path)
+    clipped_image.show()
+    pass

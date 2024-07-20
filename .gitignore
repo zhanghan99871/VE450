@@ -1,3 +1,4 @@
 # ignore
 .idea/
+data/
 __pycache__/
