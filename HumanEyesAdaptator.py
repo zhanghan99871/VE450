@@ -378,11 +378,11 @@ data_sets_high_luminance = [
      ],
      2381.67, os.path.join(current_path, 'data/VW323/sample_luminance.txt')),
     
-    (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
-     [
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(20)
-     ],
-     9001.23, os.path.join(current_path, 'data/VW326/sample_luminance.txt')),
+    # (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(20)
+    #  ],
+    #  9001.23, os.path.join(current_path, 'data/VW326/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
      [
@@ -516,13 +516,13 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
 
 # Fit on all data sets separately to get individual k, b, and c values and save comparison images
 all_params_high, luminance_values_high = fit_on_all_data_sets(data_sets_high_luminance, "gamma", output_base_dir)
-all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
+# all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
 
 # Visualize and save the relationship between parameters and initial luminance for both high and low luminance data sets
 output_file_high = os.path.join(output_base_dir, 'param_vs_luminance_high.png')
 visualize_params(all_params_high, luminance_values_high, output_file_high)
 output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
-visualize_params(all_params_low, luminance_values_low, output_file_low)
+# visualize_params(all_params_low, luminance_values_low, output_file_low)
 
 # Calculate the average parameters for high luminance data sets (use this as generalized model for high luminance data)
 mean_k_high = np.mean([param[0] for param in all_params_high])
@@ -530,8 +530,8 @@ mean_b_high = np.mean([param[1] for param in all_params_high])
 mean_c_high = np.mean([param[2] for param in all_params_high])
 
 # Fit linear models for low luminance data sets (use this as generalized model for low luminance data)
-k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
+# k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
 
 # Apply the generalized model and visualize predictions
 visualize_predictions(data_sets_high_luminance, mean_k_high, mean_b_high, mean_c_high, output_base_dir, fit_type='average', group_name='high_luminance')
-visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
+# visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
