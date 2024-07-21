@@ -100,7 +100,7 @@ class GUI:
 
         gamutmenu = Menu(self.menu)
         self.menu.add_cascade(label="Gamut clipping", menu=gamutmenu)
-        gamutmenu.add_command(label="Normal gamut clipping", command=self.gamut_clip)
+        gamutmenu.add_command(label="Gamut clipping", command=self.gamut_clip)
         gamutmenu.add_command(label="Main hue", command=self.maintain_hue)
         gamutmenu.add_command(label="Maintain lightness and hue", command=self.maintain_lightness_hue)
 
