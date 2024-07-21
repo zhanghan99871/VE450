@@ -53,14 +53,13 @@ def adapt_luminance(image, sample_luminance):
 
     adjusted_img = cv.cvtColor(lab_adjusted, cv.COLOR_LAB2BGR)
 
-    comparison_img = np.hstack((original_img, adjusted_img))
+    # comparison_img = np.hstack((original_img, adjusted_img))
 
-    title = f"Left: Original image | Right: Processed image | Sample Luminance: {sample_luminance:.6g} cd/m^2"
+    title = f"Sample Luminance: {sample_luminance:.6g} cd/m^2"
     font = cv.FONT_HERSHEY_SIMPLEX
     font_scale = 2
     thickness = 2
     color = (255, 255, 255)  # White color for text
-    comparison_img = cv.putText(comparison_img, title, (10, 80), font, font_scale, color, thickness, cv.LINE_AA)
+    adjusted_img = cv.putText(adjusted_img, title, (40, 80), font, font_scale, color, thickness, cv.LINE_AA)
 
-    # comparison_img is in RGB format
-    return comparison_img
+    return adjusted_img

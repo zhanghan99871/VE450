@@ -122,7 +122,7 @@ class HumanEyesAdaptator:
         plt.title('DeltaE for Each Adjusted Image')
         
         # Add k, b, c values and average R² to the plot
-        plt.figtext(0.5, 0.01, f'Fitted parameters: k = {np.mean(k_values):.2f}, b = {np.mean(b_values):.2f}, c = {np.mean(c_values):.2f} | Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
+        plt.figtext(0.5, 0.01, f'Fitted parameters: k = {np.mean(k_values):.4f}, b = {np.mean(b_values):.4f}, c = {np.mean(c_values):.4f} | Average R²: {r2_avg:.4f}', ha='center', fontsize=7)
         
         plt.tight_layout()
         plt.savefig(output_file, dpi=300)
@@ -180,7 +180,7 @@ class HumanEyesAdaptator:
                 comparison_img = np.hstack((original_img, adjusted_img))
                 
                 # Add title with the luminance value, R² score, and ΔE
-                title = f"Sample Luminance: {luminance_value:.2f} cd/m^2, R^2: {r2_score_val:.2f}, DeltaE: {delta_E_val:.2f}"
+                title = f"Sample Luminance: {luminance_value:.4f} cd/m^2, R^2: {r2_score_val:.4f}, DeltaE: {delta_E_val:.4f}"
                 font = cv.FONT_HERSHEY_SIMPLEX
                 font_scale = 1
                 thickness = 2
@@ -336,7 +336,7 @@ def visualize_best_fit_results(all_r2_scores, all_delta_Es, output_file, k_param
         plt.title('ΔE for Each Adjusted Image')
 
     # Add best parameters and average R² to the plot
-    plt.figtext(0.5, 0.01, f'Fitted parameters relationships: k = {k_params[0]:.2f}*initial_luminance + {k_params[1]:.2f}, b = {b_params[0]:.2f}*initial_luminance + {b_params[1]:.2f}, c = {c_params[0]:.2f}*initial_luminance + {c_params[1]:.2f} | Best Average R²: {r2_avg:.2f}', ha='center', fontsize=10)
+    plt.figtext(0.5, 0.01, f'Fitted parameters relationships: k = {k_params[0]:.4f}*initial_luminance + {k_params[1]:.4f}, b = {b_params[0]:.4f}*initial_luminance + {b_params[1]:.4f}, c = {c_params[0]:.4f}*initial_luminance + {c_params[1]:.4f} | Best Average R²: {r2_avg:.4f}', ha='center', fontsize=7)
     
     plt.tight_layout()
     plt.savefig(output_file, dpi=300)
@@ -350,43 +350,43 @@ output_base_dir = os.path.join(current_path, 'comparisons_gamma')
 data_sets_high_luminance = [
     (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
      [
-         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i+1)) for i in range(20)
+         os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i+1)) for i in range(40)
      ],
      6809.47, os.path.join(current_path, 'data/VW216/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
      [
-         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_00{}.png'.format(i+1)) for i in range(10)
+         os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_00{}.png'.format(i+1)) for i in range(40)
      ],
      2654.74, os.path.join(current_path, 'data/VW310/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
      [
-         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_00{}.png'.format(i+1)) for i in range(10)
+         os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_00{}.png'.format(i+1)) for i in range(40)
      ],
      1744.43, os.path.join(current_path, 'data/VW310-PL/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
      [
-         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_00{}.png'.format(i+1)) for i in range(10)
+         os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_00{}.png'.format(i+1)) for i in range(40)
      ],
      2124.45, os.path.join(current_path, 'data/VW316/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
      [
-         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(10)
+         os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(40)
      ],
      2381.67, os.path.join(current_path, 'data/VW323/sample_luminance.txt')),
     
-    (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
-     [
-         os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(10)
-     ],
-     9001.23, os.path.join(current_path, 'data/VW326/sample_luminance.txt')),
+    # (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
+    #  [
+    #      os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_00{}.png'.format(i+1)) for i in range(20)
+    #  ],
+    #  9001.23, os.path.join(current_path, 'data/VW326/sample_luminance.txt')),
     
     (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
      [
-         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_00{}.png'.format(i+1)) for i in range(10)
+         os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_00{}.png'.format(i+1)) for i in range(40)
      ],
      15241.2, os.path.join(current_path, 'data/VW331/sample_luminance.txt'))
 ]
@@ -463,21 +463,21 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
         plt.annotate(f"{txt:.4f}", (i+1, all_mean_r2_scores[i]))
     plt.xlabel('Dataset Index')
     plt.ylabel('Mean R² Score')
-    plt.title(f'Mean R² Scores for Each Adjusted Dataset ({group_name})')
+    plt.title(f'Mean R² Scores for Each Adjusted Dataset')
     
     # Annotate with k, b, c parameters and average R²
     if group_name == 'high_luminance':
         mean_k, mean_b, mean_c = mean_k_high, mean_b_high, mean_c_high
         avg_r2 = np.mean(all_mean_r2_scores)
         avg_deltaE = np.mean(all_mean_delta_Es)
-        plt.figtext(0.5, 0.01, f'Mean k: {mean_k:.2f}, Mean b: {mean_b:.2f}, Mean c: {mean_c:.2f} | Avg R²: {avg_r2:.2f} | Avg ΔE: {avg_deltaE:.2f}', ha='center', fontsize=10)
+        plt.figtext(0.5, 0.01, f'Mean k: {mean_k:.4f}, Mean b: {mean_b:.4f}, Mean c: {mean_c:.4f} | Avg R²: {avg_r2:.4f} | Avg ΔE: {avg_deltaE:.4f}', ha='center', fontsize=7)
     elif group_name == 'low_luminance':
         k_slope, k_intercept = k_params_low
         b_slope, b_intercept = b_params_low
         c_slope, c_intercept = c_params_low
         avg_r2 = np.mean(all_mean_r2_scores)
         avg_deltaE = np.mean(all_mean_delta_Es)
-        plt.figtext(0.5, 0.01, f'k: {k_slope:.2f}*Luminance + {k_intercept:.2f}, b: {b_slope:.2f}*Luminance + {b_intercept:.2f}, c: {c_slope:.2f}*Luminance + {c_intercept:.2f} | Avg R²: {avg_r2:.2f} | Avg ΔE: {avg_deltaE:.2f}', ha='center', fontsize=10)
+        plt.figtext(0.5, 0.01, f'k: {k_slope:.4f}*Luminance + {k_intercept:.4f}, b: {b_slope:.4f}*Luminance + {b_intercept:.4f}, c: {c_slope:.4f}*Luminance + {c_intercept:.4f} | Avg R²: {avg_r2:.4f} | Avg ΔE: {avg_deltaE:.4f}', ha='center', fontsize=7)
     
     plt.tight_layout()
     output_file_r2 = os.path.join(output_base_dir, f'mean_r2_performance_{group_name}.png')
@@ -492,21 +492,21 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
         plt.annotate(f"{txt:.4f}", (i+1, all_mean_delta_Es[i]))
     plt.xlabel('Dataset Index')
     plt.ylabel('Mean ΔE')
-    plt.title(f'Mean ΔE for Each Adjusted Dataset ({group_name})')
+    plt.title(f'Mean ΔE for Each Adjusted Dataset')
     
     # Annotate with k, b, c parameters and average ΔE
     if group_name == 'high_luminance':
         mean_k, mean_b, mean_c = mean_k_high, mean_b_high, mean_c_high
         avg_r2 = np.mean(all_mean_r2_scores)
         avg_deltaE = np.mean(all_mean_delta_Es)
-        plt.figtext(0.5, 0.01, f'Mean k: {mean_k:.2f}, Mean b: {mean_b:.2f}, Mean c: {mean_c:.2f} | Avg R²: {avg_r2:.2f} | Avg ΔE: {avg_deltaE:.2f}', ha='center', fontsize=10)
+        plt.figtext(0.5, 0.01, f'Mean k: {mean_k:.4f}, Mean b: {mean_b:.4f}, Mean c: {mean_c:.4f} | Avg R²: {avg_r2:.4f} | Avg ΔE: {avg_deltaE:.4f}', ha='center', fontsize=7)
     elif group_name == 'low_luminance':
         k_slope, k_intercept = k_params_low
         b_slope, b_intercept = b_params_low
         c_slope, c_intercept = c_params_low
         avg_r2 = np.mean(all_mean_r2_scores)
         avg_deltaE = np.mean(all_mean_delta_Es)
-        plt.figtext(0.5, 0.01, f'k: {k_slope:.2f}*Luminance + {k_intercept:.2f}, b: {b_slope:.2f}*Luminance + {b_intercept:.2f}, c: {c_slope:.2f}*Luminance + {c_intercept:.2f} | Avg R²: {avg_r2:.2f} | Avg ΔE: {avg_deltaE:.2f}', ha='center', fontsize=10)
+        plt.figtext(0.5, 0.01, f'k: {k_slope:.4f}*Luminance + {k_intercept:.4f}, b: {b_slope:.4f}*Luminance + {b_intercept:.4f}, c: {c_slope:.4f}*Luminance + {c_intercept:.4f} | Avg R²: {avg_r2:.4f} | Avg ΔE: {avg_deltaE:.4f}', ha='center', fontsize=7)
     
     plt.tight_layout()
     output_file_deltaE = os.path.join(output_base_dir, f'mean_deltaE_performance_{group_name}.png')
@@ -516,13 +516,13 @@ def visualize_model_performance(all_mean_r2_scores, all_mean_delta_Es, output_ba
 
 # Fit on all data sets separately to get individual k, b, and c values and save comparison images
 all_params_high, luminance_values_high = fit_on_all_data_sets(data_sets_high_luminance, "gamma", output_base_dir)
-all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
+# all_params_low, luminance_values_low = fit_on_all_data_sets(data_sets_low_luminance, "gamma", output_base_dir)
 
 # Visualize and save the relationship between parameters and initial luminance for both high and low luminance data sets
 output_file_high = os.path.join(output_base_dir, 'param_vs_luminance_high.png')
 visualize_params(all_params_high, luminance_values_high, output_file_high)
 output_file_low = os.path.join(output_base_dir, 'param_vs_luminance_low.png')
-visualize_params(all_params_low, luminance_values_low, output_file_low)
+# visualize_params(all_params_low, luminance_values_low, output_file_low)
 
 # Calculate the average parameters for high luminance data sets (use this as generalized model for high luminance data)
 mean_k_high = np.mean([param[0] for param in all_params_high])
@@ -530,8 +530,8 @@ mean_b_high = np.mean([param[1] for param in all_params_high])
 mean_c_high = np.mean([param[2] for param in all_params_high])
 
 # Fit linear models for low luminance data sets (use this as generalized model for low luminance data)
-k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
+# k_params_low, b_params_low, c_params_low = fit_relationships(all_params_low, luminance_values_low)
 
 # Apply the generalized model and visualize predictions
 visualize_predictions(data_sets_high_luminance, mean_k_high, mean_b_high, mean_c_high, output_base_dir, fit_type='average', group_name='high_luminance')
-visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
+# visualize_predictions(data_sets_low_luminance, k_params_low, b_params_low, c_params_low, output_base_dir, fit_type='linear', group_name='low_luminance')
