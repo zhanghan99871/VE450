@@ -24,7 +24,7 @@ class GamutClipper:
             rendering_intent = ImageCms.Intent.RELATIVE_COLORIMETRIC
         return rendering_intent
 
-    def Clip(
+    def clip(
         im: Image, clip_intent: ClipIntent,
         output_icc_path: str = None
     ) -> Image:
@@ -52,9 +52,10 @@ class GamutClipper:
 
 # test code
 if __name__ == "__main__":
-    image = Image.open("../62AHB.jpg")
-    output_icc_path = "/usr/share/color/icc/colord/AdobeRGB1998.icc"
+    image = Image.open("data/VW310-6CS.DRL-20220328.HV_001.png")
+    # output_icc_path = "/usr/share/color/icc/colord/AdobeRGB1998.icc"
+    output_icc_path = "C:\Windows\System32\spool\drivers\color\sRGB Color Space Profile.icm"
     clip_intent = GamutClipper.ClipIntent.GAMUT_CLIPPING
-    clipped_image = GamutClipper.Clip(image, clip_intent, output_icc_path)
+    clipped_image = GamutClipper.clip(image, clip_intent, output_icc_path)
     clipped_image.show()
     pass

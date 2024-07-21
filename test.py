@@ -1,28 +1,53 @@
-import tkinter as tk
+class CircularBufferStack:
+    def __init__(self, capacity):
+        self.items = [None] * capacity  # Preallocate space for simplicity
+        self.capacity = capacity
+        self.count = 0  # Track the number of items in the buffer
+        self.current = 0  # Pointer to the next position to overwrite
 
-def submit():
-    # Retrieve the data from the entry widget
-    user_input = entry.get()
-    # Optional: Clear the entry widget after getting the input
-    entry.delete(0, tk.END)
-    # Display or use the data (here we update a label as an example)
-    result_label.config(text="You entered: " + user_input)
+    def is_empty(self):
+        return self.count == 0
 
-# Create the main window
-root = tk.Tk()
-root.title("User Input Example")
+    def push(self, item):
+        # Write item at the current position, then move the pointer
+        self.items[self.current] = item
+        self.current = (self.current + 1) % self.capacity
+        if self.count < self.capacity:
+            self.count += 1
 
-# Create an Entry widget
-entry = tk.Entry(root, width=50)
-entry.pack(pady=10)
+    def pop(self):
+        if not self.is_empty():
+            # Move the pointer back to the last added item and remove it
+            self.current = (self.current - 1 + self.capacity) % self.capacity
+            item = self.items[self.current]
+            self.items[self.current] = None  # Optional: Clear the spot
+            if self.count > 0:
+                self.count -= 1
+            return item
+        raise IndexError("pop from empty stack")
 
-# Create a Button to submit the input
-submit_button = tk.Button(root, text="Submit", command=submit)
-submit_button.pack(pady=5)
+    def peek(self):
+        if not self.is_empty():
+            # Peek at the last added item without removing it
+            last_index = (self.current - 1 + self.capacity) % self.capacity
+            return self.items[last_index]
+        raise IndexError("peek from empty stack")
 
-# Label to display the results
-result_label = tk.Label(root, text="")
-result_label.pack(pady=10)
+    def size(self):
+        return self.count
 
-# Start the main event loop
-root.mainloop()
+# Example usage
+stack = CircularBufferStack(3)
+stack.push('apple')
+stack.push('banana')
+stack.push('cherry')
+print("Stack contents:", stack.items)
+
+stack.push('date')
+print("Stack contents after adding 'date':", stack.items)
+
+stack.push('fig')
+print("Stack contents after adding 'fig':", stack.items)
+
+print("Popped item:", stack.pop())
+print("Stack contents after popping:", stack.items)
