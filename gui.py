@@ -73,7 +73,7 @@ class GUI:
         self.tk.config(menu=self.menu)
         self.image = None
         self.tk.bind("<Configure>", self._resize)
-        self.luminance = None
+        self.luminance = 1
         self.image_copy = None
         self.back_stack = Stack()
         self.forward_stack = Stack()
@@ -221,10 +221,12 @@ class GUI:
     def create_sub_window_luminance_adjust(self): # sub window to get value
         self.sub_window_lum_adjust = Toplevel(self.tk)
         self.sub_window_lum_adjust.title("Sub Window")
-        x_label = Label(self.sub_window_lum_adjust, text="adjusted luminance: ")
-        x_label.grid(row=0, column=0)
+        adjusted = Label(self.sub_window_lum_adjust, text="adjusted luminance: ")
+        adjusted.grid(row=1, column=0)
+        current = Label(self.sub_window_lum_adjust, text="current luminance: {}".format(self.luminance))
+        current.grid(row=0, column=0)
         self.x_entry = Entry(self.sub_window_lum_adjust, width=30)
-        self.x_entry.grid(row=0, column=1)
+        self.x_entry.grid(row=1, column=1)
         def submit():
             # Retrieve the data from the entry widget
             if self.image is not None:
@@ -234,7 +236,7 @@ class GUI:
                 self.back_stack.push(self.image.copy())
                 self.refresh()
         button_to_get = Button(self.sub_window_lum_adjust, text="Enter", command=submit)
-        button_to_get.grid(row=1, column=1)
+        button_to_get.grid(row=2, column=1)
 
     def create_sub_window_glare(self):  # sub window to get value
         self.sub_window_glare = Toplevel(self.tk)

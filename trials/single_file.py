@@ -426,66 +426,66 @@ current_path = os.path.abspath(os.path.dirname(__file__))
 output_base_dir = os.path.join(current_path, 'data/comparison_images')
 # Data sets with initial luminance >= 100
 data_sets_high_luminance = [
-    (os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
+    (os.path.join(current_path, '../data/VW216/VW216.RTSL-BUL.HV_6809.47.png'),
      [
          os.path.join(current_path, 'data/VW216/VW216.RTSL-BUL.HV_00{}.png'.format(i + 1)) for i in range(20)
      ],
-     6809.47, os.path.join(current_path, 'data/VW216/sample_luminance.txt')),
+     6809.47, os.path.join(current_path, '../data/VW216/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
+    (os.path.join(current_path, '../data/VW310/VW310-6CS.DRL-20220328.HV_2654.74.png'),
      [
          os.path.join(current_path, 'data/VW310/VW310-6CS.DRL-20220328.HV_00{}.png'.format(i + 1)) for i in range(10)
      ],
-     2654.74, os.path.join(current_path, 'data/VW310/sample_luminance.txt')),
+     2654.74, os.path.join(current_path, '../data/VW310/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
+    (os.path.join(current_path, '../data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_1744.43.png'),
      [
          os.path.join(current_path, 'data/VW310-PL/VW310-6CS.PL-FTSL-20220401.HV_00{}.png'.format(i + 1)) for i in
          range(10)
      ],
-     1744.43, os.path.join(current_path, 'data/VW310-PL/sample_luminance.txt')),
+     1744.43, os.path.join(current_path, '../data/VW310-PL/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
+    (os.path.join(current_path, '../data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_2124.45.png'),
      [
          os.path.join(current_path, 'data/VW316/VW316 7CS.RTSL-BUL-SL-TL.HV_00{}.png'.format(i + 1)) for i in range(10)
      ],
-     2124.45, os.path.join(current_path, 'data/VW316/sample_luminance.txt')),
+     2124.45, os.path.join(current_path, '../data/VW316/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
+    (os.path.join(current_path, '../data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_2381.67.png'),
      [
          os.path.join(current_path, 'data/VW323/VW323 0CS.SL-RTSL-BUL-RFL.HV_00{}.png'.format(i + 1)) for i in range(10)
      ],
-     2381.67, os.path.join(current_path, 'data/VW323/sample_luminance.txt')),
+     2381.67, os.path.join(current_path, '../data/VW323/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
+    (os.path.join(current_path, '../data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_9001.23.png'),
      [
          os.path.join(current_path, 'data/VW326/VW326 0CS.SL-TL-RTSL-BUL-RFL.HV_00{}.png'.format(i + 1)) for i in
          range(10)
      ],
-     9001.23, os.path.join(current_path, 'data/VW326/sample_luminance.txt')),
+     9001.23, os.path.join(current_path, '../data/VW326/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
+    (os.path.join(current_path, '../data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_15241.2.png'),
      [
          os.path.join(current_path,
                       'data/VW331/VW331_Basic_CHL_simulation setting.DRL_PL_FTSL_20220311.HV_00{}.png'.format(i + 1))
          for i in range(10)
      ],
-     15241.2, os.path.join(current_path, 'data/VW331/sample_luminance.txt')),
+     15241.2, os.path.join(current_path, '../data/VW331/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_25.1441.png'),
+    (os.path.join(current_path, '../data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_25.1441.png'),
      [
          os.path.join(current_path, 'data/VW316-TLB/VW316 7CS-RCL.TLB-20220810.HV_00{}.png'.format(i + 1)) for i in
          range(20)
      ],
      25.1441,
-     os.path.join(current_path, 'data/VW316-TLB/sample_luminance.txt')),
+     os.path.join(current_path, '../data/VW316-TLB/sample_luminance.txt')),
 
-    (os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
+    (os.path.join(current_path, '../data/VW323-TL/VW323 0CS.TL.HV_49.3145.png'),
      [
          os.path.join(current_path, 'data/VW323-TL/VW323 0CS.TL.HV_00{}.png'.format(i + 1)) for i in range(20)
      ],
      49.3145,
-     os.path.join(current_path, 'data/VW323-TL/sample_luminance.txt'))
+     os.path.join(current_path, '../data/VW323-TL/sample_luminance.txt'))
 ]
 
 

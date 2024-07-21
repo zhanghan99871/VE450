@@ -60,6 +60,6 @@ def adapt_luminance(image, sample_luminance):
     font_scale = 2
     thickness = 2
     color = (255, 255, 255)  # White color for text
-    adjusted_img = cv.putText(adjusted_img, title, (40, 80), font, font_scale, color, thickness, cv.LINE_AA)
+    # adjusted_img = cv.putText(adjusted_img, title, (40, 80), font, font_scale, color, thickness, cv.LINE_AA)
 
     return adjusted_img

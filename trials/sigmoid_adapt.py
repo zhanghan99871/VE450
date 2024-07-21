@@ -6,7 +6,7 @@ import cv2 as cv
 from skimage.metrics import mean_squared_error as mse
 import logging
 from RawImage import RawImage
-from generate_luminance_values import LuminanceGenerator
+from trials.generate_luminance_values import LuminanceGenerator
 import matplotlib.pyplot as plt
 
 # Set up logging
