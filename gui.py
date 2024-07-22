@@ -219,24 +219,22 @@ class GUI:
         button_to_get.grid(row=1, column=2)
 
     def create_sub_window_luminance_adjust(self): # sub window to get value
-        self.sub_window_lum_adjust = Toplevel(self.tk)
-        self.sub_window_lum_adjust.title("Sub Window")
-        adjusted = Label(self.sub_window_lum_adjust, text="adjusted luminance: ")
-        adjusted.grid(row=1, column=0)
-        current = Label(self.sub_window_lum_adjust, text="current luminance: {}".format(self.luminance))
-        current.grid(row=0, column=0)
-        self.x_entry = Entry(self.sub_window_lum_adjust, width=30)
-        self.x_entry.grid(row=1, column=1)
-        def submit():
+        def submit(val):
             # Retrieve the data from the entry widget
+            current.config(text=f"Current Value: {float(val)}")
             if self.image is not None:
-                x_input = self.x_entry.get()
-                self.luminance = float(x_input)
-                self.image = Image.fromarray(adapt_luminance(self.image, self.luminance))
+                val = float(val) / 5 - 10
+                self.luminance = 10 ** val
+                print(self.luminance)
+                self.image = Image.fromarray(adapt_luminance(self.image_copy, self.luminance))
                 self.back_stack.push(self.image.copy())
                 self.refresh()
-        button_to_get = Button(self.sub_window_lum_adjust, text="Enter", command=submit)
-        button_to_get.grid(row=2, column=1)
+        self.sub_window_lum_adjust = Toplevel(self.tk)
+        self.sub_window_lum_adjust.title("Sub Window")
+        current = Label(self.sub_window_lum_adjust, text="current luminance: {}".format(self.luminance))
+        current.grid(row=0, column=0)
+        scale = Scale(self.sub_window_lum_adjust, from_=0, to=100, orient='horizontal', command=submit)
+        scale.grid(row=1, column=0)
 
     def create_sub_window_glare(self):  # sub window to get value
         self.sub_window_glare = Toplevel(self.tk)
@@ -294,7 +292,26 @@ class GUI:
 
     def rescale(self):
         if self.image is not None:
-            self.refresh()
+            image = self.image
+            photo = ImageTk.PhotoImage(image)
+            self.tk.geometry("{}x{}".format(image.width + 50, image.height + 50))
+            self.image = image
+            self.back_stack.push(self.image.copy())
+            # If an image is already displayed, remove it
+            self.canvas.delete("all")
+
+            # Resize the canvas
+            self.canvas.config(width=image.width + 20, height=image.height + 20)
+
+            # Display the image on the canvas
+            self.canvas.create_image(0, 0, anchor=NW, image=photo)
+
+            # Keep a reference to the image to prevent garbage collection
+            self.canvas.image = photo
+
+            self.text_id = self.canvas.create_text(100, image.height + 20,
+                                                   text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0, 0,
+                                                                                                0))
         else:
             pass
 
@@ -319,6 +336,7 @@ class GUI:
         photo = ImageTk.PhotoImage(image)
         self.tk.geometry("{}x{}".format(image.width+50, image.height+50))
         self.image = image
+        self.image_copy = image.copy()
         self.back_stack.push(self.image.copy())
         # If an image is already displayed, remove it
         self.canvas.delete("all")
