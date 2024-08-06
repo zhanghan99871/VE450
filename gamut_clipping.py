@@ -58,4 +58,3 @@ if __name__ == "__main__":
     clip_intent = GamutClipper.ClipIntent.GAMUT_CLIPPING
     clipped_image = GamutClipper.clip(image, clip_intent, output_icc_path)
     clipped_image.show()
-    pass

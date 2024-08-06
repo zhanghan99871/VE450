@@ -7,6 +7,7 @@ import colorsys
 from adapt_luminance import adapt_luminance
 from glare import add_glare
 from gamut_clipping import GamutClipper
+import time
 MAX_WIDTH = 1500
 MAX_HEIGHT = 800
 color_space = {}
@@ -130,7 +131,10 @@ class GUI:
 
     def glare_adjust(self, intensity=1.0):
         self.image_copy = self.image.copy()
+        start = time.time()
         self.image = Image.fromarray(add_glare(np.array(self.image), intensity))
+        end = time.time()
+        print(end-start)
         self.back_stack.push(self.image.copy())
         self.refresh()
 
@@ -146,7 +150,10 @@ class GUI:
         if self.image is not None:
             output_icc_path = "C:\Windows\System32\spool\drivers\color\sRGB Color Space Profile.icm"
             clip_intent = GamutClipper.ClipIntent.GAMUT_CLIPPING
+            start = time.time()
             clipped_image = GamutClipper.clip(self.image, clip_intent, output_icc_path)
+            end = time.time()
+            print(end-start)
             self.image = clipped_image
             self.back_stack.push(self.image.copy())
             self.refresh()
@@ -225,8 +232,10 @@ class GUI:
             if self.image is not None:
                 val = float(val) / 5 - 10
                 self.luminance = 10 ** val
-                print(self.luminance)
+                start = time.time()
                 self.image = Image.fromarray(adapt_luminance(self.image_copy, self.luminance))
+                end = time.time()
+                print(end-start)
                 self.back_stack.push(self.image.copy())
                 self.refresh()
         self.sub_window_lum_adjust = Toplevel(self.tk)
@@ -326,9 +335,13 @@ class GUI:
                                                  filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg"),
                                                             ("All files", "*.*")])
         if file_path:
+            start = time.time()
             self.image.save(file_path)
+            end = time.time()
+            print(end - start)
 
     def display_image(self, path):
+        start = time.time()
         image = Image.open(path)
         if image.width > MAX_WIDTH or image.height > MAX_HEIGHT:
             scale = max(image.width/MAX_WIDTH, image.height/MAX_HEIGHT)
@@ -352,6 +365,9 @@ class GUI:
 
         self.text_id = self.canvas.create_text(100, image.height+20,
                                 text="x={}, y={}, value=({}, {}, {})".format(self.x, self.y, 0, 0, 0))
+
+        end = time.time()
+        print(end-start)
 
     def display_pixel(self):
         if self.image is not None:

@@ -1,24 +1,25 @@
-import tkinter as tk
+import cv2
+import numpy as np
 
-def on_scale(val):
-    # This function is triggered when the slider is moved
-    label.config(text=f"Current Value: {int(float(val))}")
+# Load your image (make sure to provide the correct path)
+image = cv2.imread('data/VW216/VW216.RTSL-BUL.HV_001.png')
 
-def main():
-    root = tk.Tk()
-    root.title("Scale Example")
-    root.geometry("300x200")
+# Convert the image to grayscale
+gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Create a Scale widget
-    scale = tk.Scale(root, from_=0, to=100, orient='horizontal', command=on_scale)
-    scale.pack(padx=20, pady=20)
+# Set your threshold value
+threshold_value = 0  # Change this value based on your needs
 
-    # Create a Label widget to display the current value of the scale
-    global label
-    label = tk.Label(root, text="Current Value: 0")
-    label.pack()
+# Apply the threshold
+_, thresholded_image = cv2.threshold(gray_image, threshold_value, 255, cv2.THRESH_BINARY)
+mask = np.stack([thresholded_image]*3, axis=-1)
+print(mask.shape)
 
-    root.mainloop()
+# Where thresholded_image is 0, set to black, else keep the original gray values
+result_image = np.where(mask == 0, 0, image)
 
-if __name__ == "__main__":
-    main()
+# Save or display the result
+cv2.imwrite('output_image.jpg', result_image)
+cv2.imshow('Result', result_image)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
